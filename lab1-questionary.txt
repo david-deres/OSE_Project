@@ -20,10 +20,10 @@
 RTC
 === Q What instruction causes processor to switch to 32-bit mode?
 ===   (specify address & instruction)
-
+0xfd14f:	ljmpl  $0x8,$0xfd157
 === Q What's the instruction performed immediately after the processor
 ===   is switched to 32-bit mode? (address & instruction)
-
+0xfd157:	mov    $0x10,%eax
 === Q What is the last instruction of boot loader? (address & instruction)
 
 === Q What is first instruction of the kernel? (address & instruction)
