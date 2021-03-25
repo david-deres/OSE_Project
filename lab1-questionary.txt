@@ -25,14 +25,14 @@ Real Time Clock
 ===   is switched to 32-bit mode? (address & instruction)
 0x7c32:	mov    $0x10,%ax
 === Q What is the last instruction of boot loader? (address & instruction)
-
+0x7d61: call   *0x10018
 === Q What is first instruction of the kernel? (address & instruction)
-
+0x10000c: movw   $0x1234,0x472
 === Q Where boot loader finds information how many sectors it must
 ===   read in order to fetch the entire kernel from disk? 
 ===   (remove leading "====" from the correct answer line)
 ==== hard coded in boot loader
-==== elf header
+elf header
 ==== elf tail
 ==== gnome header
 ==== gnome tail
@@ -42,7 +42,7 @@ Real Time Clock
 ===   executing kernel from? 
 ===   (remove leading "====" from the correct answer line)
 ==== hard coded in boot loader
-==== elf header
+elf header
 ==== elf tail
 ==== gnome header
 ==== gnome tail
