@@ -117,7 +117,7 @@ He110 World
 0x726c6400
 === Q What is printed after "y=" for cprintf("x=%d y=%d", 3)?
 ===   (free form, up to 10 words)
-
+4 bytes after second argument on stack cast to int
 === Q What instruction reserves space for kernel stack?
 ===   (address & instruction)
 
