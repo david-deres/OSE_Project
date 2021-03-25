@@ -85,9 +85,10 @@ ENTRY(_start)
 0x10002d: jmp    *%eax
 === Q What functions from console.c are directly used by printf.c?
 ===   (just function names separated by spaces, not full declarations)
-
+cputchar
 === Q What is the task of console.c lines 194-202?
 ===   (free form, up to 10 words)
+move all lines up to ensure last line is visible
 
 ===   Consider the code
 ===   	int x = 1, y = 3, z = 4;
