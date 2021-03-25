@@ -108,13 +108,13 @@ move all lines up to ensure last line is visible
 ===     cprintf("H%x Wo%s", 57616, &i);
 
 === Q What is the output of the code?
-
+He110 World
 === Q To lead to the same output in big-endian architecture, what
 ===   should be the value of the second argument?
-
+0x10e10000
 === Q To lead to the same output in big-endian architecture, what
 ===   should be the value of i?
-
+0x726c6400
 === Q What is printed after "y=" for cprintf("x=%d y=%d", 3)?
 ===   (free form, up to 10 words)
 
