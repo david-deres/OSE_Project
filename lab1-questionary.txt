@@ -17,7 +17,7 @@
 === Q What is the number of the first port BIOS reads from?
 0x71
 === Q What device is probably accessed through above ports?
-RTC
+Real Time Clock
 === Q What instruction causes processor to switch to 32-bit mode?
 ===   (specify address & instruction)
 0x7c2d:	ljmp   $0x8,$0x7c32
