@@ -98,9 +98,10 @@ move all lines up to ensure last line is visible
 
 === Q What's the contents of the first byte in memory pointed to by
 ===   fmt? (write this byte as a number)
-
+0x78
 === Q What's the contents of the first byte in memory pointed to by
 ===   ap? (write this byte as a number)
+0x1
 
 ===   Consider the code
 ===     unsigned int i = 0x00646c72;
