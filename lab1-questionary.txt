@@ -50,28 +50,28 @@ elf header
 
 === Q What C function in boot loader contains the logic of reading the
 ===   whole kernel? (not full function declaration, just the name)
-
+bootmain
 === Q What are 4 words of memory at 0x100000 at the point the BIOS
 ===   enters the boot loader?
 ===   (as displayed by gdb, in the form WORD1 WORD2 WORD3 WORD4)
-
+0x00000000 0x00000000 0x00000000 0x00000000
 === Q What are 4 words of memory at 0x100000 at the point the boot
 ===   loader enters the kernel?
 ===   (as displayed by gdb, in the form WORD1 WORD2 WORD3 WORD4)
-
+0x1badb002 0x00000000 0xe4524ffe 0x7205c766
 === Q What's the link address of .text section of the kernel?
-
+0x100000
 === Q What's the entry point (start address) of the kernel?
-
+0x10000c
 === Q What source file contains the first kernel instruction?
 ===   (file name including extensions, but excluding the path)
-
+entry.S
 === Q Study the file you've just found.
 ===   What's the name of a kernel entry point as appears in this file?
-
+_start
 === Q What line among all kernel sources declares the name you've just
 ===   found as kernel entry point? (full line)
-
+ENTRY(_start)
 === Q What's the first instruction which would "break" if you were to
 ===   get the boot loader's link address wrong? "Break" here means: 
 ===   the result of executing the instruction is different from the
