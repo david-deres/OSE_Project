@@ -78,7 +78,7 @@ ENTRY(_start)
 ===   one before the change of the link address.
 ===   Check yourself by recompiling & debugging!
 ===   (address & instruction)
-
+0x7c1e: lgdtw  0x7c64
 === Q What's the first instruction after the kernel establishes a new
 ===   mapping that would fail to work properly if the mappings were
 ===   not in place? (address & instruction)
