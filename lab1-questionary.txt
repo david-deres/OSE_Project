@@ -82,7 +82,7 @@ ENTRY(_start)
 === Q What's the first instruction after the kernel establishes a new
 ===   mapping that would fail to work properly if the mappings were
 ===   not in place? (address & instruction)
-
+0x10002d: jmp    *%eax
 === Q What functions from console.c are directly used by printf.c?
 ===   (just function names separated by spaces, not full declarations)
 
