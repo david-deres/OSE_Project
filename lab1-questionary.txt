@@ -70,7 +70,7 @@ bootmain
 0x1badb002 0x00000000 0xe4524ffe 0x7205c766
 
 === Q What's the link address of .text section of the kernel?
-0x100000
+0xf0100000
 
 === Q What's the entry point (start address) of the kernel?
 0x10000c
