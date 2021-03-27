@@ -131,7 +131,7 @@ He110 World
 
 === Q To lead to the same output in big-endian architecture, what
 ===   should be the value of the second argument?
-0x10e10000
+0xe110
 
 === Q To lead to the same output in big-endian architecture, what
 ===   should be the value of i?
