@@ -96,10 +96,11 @@ boot_alloc(uint32_t n)
 	// Allocate a chunk large enough to hold 'n' bytes, then update
 	// nextfree.  Make sure nextfree is kept aligned
 	// to a multiple of PGSIZE.
-	//
-	// LAB 2: Your code here.
 
-	return NULL;
+	char *chunk = nextfree;
+	nextfree = ROUNDUP(nextfree + n, PGSIZE);
+
+	return chunk;
 }
 
 // Set up a two-level page table:
