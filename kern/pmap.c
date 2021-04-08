@@ -262,9 +262,22 @@ page_init(void)
 	// free pages!
 	size_t i;
 	for (i = 0; i < npages; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+		physaddr_t addr = page2pa(&pages[i]);
+		if (addr == 0) {
+			pages[i].pp_ref = 1;
+		} else if (addr >= PGSIZE && addr < npages_basemem * PGSIZE) {
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		} else if (addr >= IOPHYSMEM && addr < EXTPHYSMEM) {
+			pages[i].pp_ref = 1;
+		} else if (addr >= EXTPHYSMEM && addr < PADDR(boot_alloc(0))) {
+			pages[i].pp_ref = 1;
+		} else {
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
 	}
 }
 
