@@ -58,7 +58,30 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// Your code here.
+	uint32_t ebp = read_ebp();
+	cprintf("Stack backtrace:\n");
+	while (ebp != 0) {
+		// the return address is stored after the previous ebp
+		uintptr_t eip = *((uintptr_t*)ebp+1);
+		struct Eipdebuginfo debug_info;
+
+		debuginfo_eip(eip, &debug_info);
+
+		cprintf("ebp %x  eip %x  args", ebp, eip);
+		int i;
+		for (i=0; i<5; i++) {
+			uint32_t arg = *((uint32_t*)ebp + 2 + i);
+			cprintf(" %08x", arg);
+		}
+		cprintf("\n");
+		cprintf("         %s:%d: %.*s+%d\n",
+				debug_info.eip_file,
+				debug_info.eip_line,
+				debug_info.eip_fn_namelen,
+				debug_info.eip_fn_name,
+				eip - debug_info.eip_fn_addr);
+		ebp = *(uint32_t*)ebp;
+	}
 	return 0;
 }
 
