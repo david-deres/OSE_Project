@@ -32,7 +32,7 @@
 ===   	x = (mystery_t) value;
 ===   What type mystery_t should refer to?
 ===   (remove leading "====" from the correct answer line)
-==== uintptr_t
+uintptr_t
 ==== physaddr_t
 
 
