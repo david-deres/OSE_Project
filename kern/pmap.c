@@ -98,7 +98,18 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 
 	char *chunk = nextfree;
-	nextfree = ROUNDUP(nextfree + n, PGSIZE);
+
+	if (n == 0) {
+		return chunk;
+	}
+
+	char *next_addr = ROUNDUP(nextfree + n, PGSIZE);
+
+	if ((uintptr_t)next_addr > KERNBASE + PTSIZE) {
+		panic("Error: Out of memory");
+	}
+
+	nextfree = next_addr;
 
 	return chunk;
 }
