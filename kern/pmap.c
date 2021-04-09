@@ -435,6 +435,13 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+	page_remove(pgdir, va);
+	pte_t *page_table_entry = pgdir_walk(pgdir, va, true);
+	if (page_table_entry == NULL) {
+		return -E_NO_MEM;
+	}
+	*page_table_entry = page2pa(pp) | perm | PTE_P;
+	pp->pp_ref++;
 	return 0;
 }
 
