@@ -373,6 +373,8 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		if (new_page == NULL) {
 			return NULL;
 		}
+		new_page->pp_link = NULL;
+		new_page->pp_ref = 1;
 		*pgdir_entry = page2pa(new_page) | PTE_P | PTE_W | PTE_U;
 	}
 	
