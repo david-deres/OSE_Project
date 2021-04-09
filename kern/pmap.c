@@ -396,6 +396,14 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	physaddr_t cur_pa = pa;
+	for (; cur_pa < pa + size; cur_pa += PGSIZE, va += PGSIZE) {
+		pte_t *page_table_entry = pgdir_walk(pgdir, (const void *)va, true);
+		if (page_table_entry == NULL) {
+			panic("Error: unable to map region");
+		}
+		*page_table_entry = cur_pa | perm | PTE_P ;
+	}
 }
 
 //
