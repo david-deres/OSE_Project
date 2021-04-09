@@ -453,7 +453,18 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
+	pte_t *page_table_entry = pgdir_walk(pgdir, va, false);
+	if (page_table_entry == NULL) {
+		return NULL;
+	}
+	if ((*page_table_entry & PTE_P) == 0) {
+		return NULL;
+	}
+	if (pte_store != NULL) {
+		*pte_store = page_table_entry;
+	}
+	physaddr_t pa = PTE_ADDR(*page_table_entry);
+	return pa2page(pa);
 }
 
 //
