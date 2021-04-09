@@ -25,7 +25,21 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Display a backtrace of the current function", mon_backtrace },
+	{ "vmmap",
+"Modify the mapping of the virtual memory with the following arguments:\n\
+set {vstart} {vend} {pstart} {pend} - map the virtual addresses vstart-vend\n\
+                                      to physical addresses pstart-pend\n\
+clear {vstart} {vend} - clear the mapping of virtual addresses vstart-vend\n\
+perm {vstart} {vend} [R/RW/RU/RWU] - set the permissions\n\
+    of the virtual addresses, where R is read-only, RW is for read-write\n\
+    and U can be added to any of them to indicate user access\n\
+show {vstart} {vend} - show the mapping and permissions\n\
+    for pages contating virtual addresses vstart-vend\n\
+dump [v/p] {start} {end}- dump the contents of the address start-end\n\
+    those are interpreted as virtual with 'v' or physical with 'p'",
+mon_vmmap },
 };
+
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -86,7 +100,10 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
-
+int
+mon_vmmap(int argc, char **argv, struct Trapframe *tf) {
+	return 0;
+}
 
 /***** Kernel monitor command interpreter *****/
 
