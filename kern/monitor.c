@@ -138,16 +138,18 @@ void mon_vmmap_perm(int argc, char **argv) {
 		return;
 	}
 
+	MemoryRange range = {vstart, vend};
+
 	bool mapping_exists = false;
 
 	if (strcmp(argv[2], "R") == 0) {
-		mapping_exists = change_page_perm(vstart, vend, 0);
+		mapping_exists = change_page_perm(range, 0);
 	} else if (strcmp(argv[2], "RW") == 0) {
-		mapping_exists = change_page_perm(vstart, vend, PTE_W);
+		mapping_exists = change_page_perm(range, PTE_W);
 	} else if (strcmp(argv[2], "RU") == 0) {
-		mapping_exists = change_page_perm(vstart, vend, PTE_U);
+		mapping_exists = change_page_perm(range, PTE_U);
 	} else if (strcmp(argv[2], "RWU") == 0) {
-		mapping_exists = change_page_perm(vstart, vend, PTE_W | PTE_U);
+		mapping_exists = change_page_perm(range, PTE_W | PTE_U);
 	} else {
 		cprintf("got invalid memory permission \"%s\"\n", argv[2]);
 		return;

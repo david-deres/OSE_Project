@@ -16,6 +16,12 @@ extern size_t npages;
 
 extern pde_t *kern_pgdir;
 
+// a range of either virtual or physical memory where start <= end
+struct {
+	uintptr_t start;
+	uintptr_t end;
+} typedef MemoryRange;
+
 
 /* This macro takes a kernel virtual address -- an address that points above
  * KERNBASE, where the machine's maximum 256MB of physical memory is mapped --
@@ -62,7 +68,7 @@ void	page_decref(struct PageInfo *pp);
 
 void	tlb_invalidate(pde_t *pgdir, void *va);
 
-bool    change_page_perm(uintptr_t vstart, uintptr_t vend, int perm);
+bool    change_page_perm(MemoryRange virtual, int perm);
 
 static inline physaddr_t
 page2pa(struct PageInfo *pp)

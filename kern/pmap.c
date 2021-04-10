@@ -526,17 +526,17 @@ tlb_invalidate(pde_t *pgdir, void *va)
 	invlpg(va);
 }
 
-bool change_page_perm(uintptr_t vstart, uintptr_t vend, int perm) {
-	uintptr_t vstart_page = ROUNDDOWN(vstart, PGSIZE);
+bool change_page_perm(MemoryRange virtual, int perm) {
+	uintptr_t vstart_page = ROUNDDOWN(virtual.start, PGSIZE);
 	uintptr_t va;
-	for (va = vstart_page; va < vend; va += PGSIZE) {
+	for (va = vstart_page; va < virtual.end; va += PGSIZE) {
 		if (page_lookup(kern_pgdir, (void *)va, NULL) == NULL) {
 			return false;
 		}
 	}
 
 	pte_t *page_table_entry;
-	for (va = vstart_page; va < vend; va += PGSIZE) {
+	for (va = vstart_page; va < virtual.end; va += PGSIZE) {
 		page_lookup(kern_pgdir, (void *)va, &page_table_entry);
 		*page_table_entry = PTE_ADDR(*page_table_entry) | perm | PTE_P;
 	}
