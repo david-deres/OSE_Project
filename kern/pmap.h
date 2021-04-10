@@ -69,6 +69,7 @@ void	page_decref(struct PageInfo *pp);
 void	tlb_invalidate(pde_t *pgdir, void *va);
 
 bool    change_page_perm(MemoryRange virtual, int perm);
+void    show_pages(MemoryRange virtual);
 
 static inline physaddr_t
 page2pa(struct PageInfo *pp)

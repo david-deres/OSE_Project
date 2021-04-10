@@ -177,6 +177,14 @@ void mon_vmmap_show(int argc, char **argv) {
 		cprintf("not enough arguments for `vmmap show`\n");
 		return;
 	}
+
+	MemoryRange range;
+
+	if (!create_range(argv, &range)) {
+		return;
+	}
+
+	show_pages(range);
 }
 
 void mon_vmmap_dump(int argc, char **argv) {

@@ -544,6 +544,35 @@ bool change_page_perm(MemoryRange virtual, int perm) {
 	return true;
 }
 
+void show_pages(MemoryRange virtual) {
+	uintptr_t vstart_page = ROUNDDOWN(virtual.start, PGSIZE);
+	uintptr_t va;
+	pte_t *page_table_entry;
+	cprintf("VIRTUAL			|	PHYSICAL			|	PERMISSIONS\n");
+	for (va = vstart_page; va < virtual.end; va += PGSIZE) {
+		if (page_lookup(kern_pgdir, (void *)va, &page_table_entry) != NULL) {
+			physaddr_t pa = PTE_ADDR(*page_table_entry);
+			char *perm;
+			switch (*page_table_entry & (PTE_W | PTE_U)) {
+				case PTE_W | PTE_U:
+					perm = "RWU";
+					break;
+				case PTE_W:
+					perm = "PW-";
+					break;
+				case PTE_U:
+					perm = "R-U";
+					break;
+				default:
+					perm = "R--";
+					break;
+			}
+			cprintf("0x%08x-0x%08x	|	0x%08x-0x%08x	|	%s\n",
+					va, va+PGSIZE, pa, pa+PGSIZE, perm);
+		}
+	}
+}
+
 
 // --------------------------------------------------------------
 // Checking functions.
