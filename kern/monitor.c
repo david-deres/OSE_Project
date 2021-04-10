@@ -100,8 +100,62 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
+void mon_vmmap_set(int argc, char **argv) {
+	if (argc < 4) {
+		cprintf("not enough arguments for `vmmap set`\n");
+		return;
+	}
+}
+
+void mon_vmmap_clear(int argc, char **argv) {
+	if (argc < 2) {
+		cprintf("not enough arguments for `vmmap clear`\n");
+		return;
+	}
+}
+
+void mon_vmmap_perm(int argc, char **argv) {
+	if (argc < 3) {
+		cprintf("not enough arguments for `vmmap perm`\n");
+		return;
+	}
+}
+
+void mon_vmmap_show(int argc, char **argv) {
+	if (argc < 2) {
+		cprintf("not enough arguments for `vmmap show`\n");
+		return;
+	}
+}
+
+void mon_vmmap_dump(int argc, char **argv) {
+	if (argc < 3) {
+		cprintf("not enough arguments for `vmmap dump`\n");
+		return;
+	}
+}
+
 int
 mon_vmmap(int argc, char **argv, struct Trapframe *tf) {
+	if (argc < 2) {
+		cprintf("not enough arguments for `vmmap`\n");
+		return 0;
+	}
+	char *subcommand = argv[1];
+	char **subargs = argv + 2;
+	if (strcmp(subcommand, "set") == 0) {
+		mon_vmmap_set(argc - 2, subargs);
+	} else if (strcmp(subcommand, "clear") == 0) {
+		mon_vmmap_clear(argc - 2, subargs);
+	} else if (strcmp(subcommand, "perm") == 0) {
+		mon_vmmap_perm(argc - 2, subargs);
+	} else if (strcmp(subcommand, "show") == 0) {
+		mon_vmmap_show(argc - 2, subargs);
+	} else if (strcmp(subcommand, "dump") == 0) {
+		mon_vmmap_dump(argc - 2, subargs);
+	} else {
+		cprintf("Unknown subcommand for `vmmap`\n");
+	}
 	return 0;
 }
 
