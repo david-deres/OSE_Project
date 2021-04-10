@@ -610,15 +610,16 @@ static pte_t replace_page_entry(void *va, pte_t pte) {
 void dump_range(MemoryRange range) {
 	while (range.start < range.end) {
 		uintptr_t vstart;
-		pte_t utemp_pte;
+		pte_t utemp_pte1, utemp_pte2;
 
-		uintptr_t page_end = ROUNDDOWN(range.start + PGSIZE, PGSIZE);
-		size_t len = MIN(range.end, page_end) - range.start;
+		size_t len = MIN(range.end - range.start, PGSIZE);
 
 		if (range.type == PHYSICAL) {
 			// temporaraly map utemp virtual address to page of range.start
 			// to allow reading from the page
-			utemp_pte = replace_page_entry(UTEMP, range.start | PTE_P);
+			utemp_pte1 = replace_page_entry(UTEMP, range.start | PTE_P);
+			// map two adjacent pages to prevent broken-up lines at page boundary
+			utemp_pte2 = replace_page_entry(UTEMP + PGSIZE, (range.start + PGSIZE) | PTE_P);
 
 			uintptr_t page_start = ROUNDDOWN(range.start, PGSIZE);
 			vstart = (uintptr_t)UTEMP + (range.start - page_start);
@@ -635,7 +636,8 @@ void dump_range(MemoryRange range) {
 
 		if (range.type == PHYSICAL) {
 			// restore old mapping to utemp
-			replace_page_entry(UTEMP, utemp_pte);
+			replace_page_entry(UTEMP, utemp_pte1);
+			replace_page_entry(UTEMP + PGSIZE, utemp_pte2);
 		}
 	}
 }
