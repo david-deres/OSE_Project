@@ -526,6 +526,10 @@ tlb_invalidate(pde_t *pgdir, void *va)
 	invlpg(va);
 }
 
+bool change_page_perm(uintptr_t vstart, uintptr_t vend, int perm) {
+	return page_lookup(kern_pgdir, (void *)vstart, NULL) != NULL;
+}
+
 
 // --------------------------------------------------------------
 // Checking functions.
