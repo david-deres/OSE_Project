@@ -119,6 +119,36 @@ void mon_vmmap_perm(int argc, char **argv) {
 		cprintf("not enough arguments for `vmmap perm`\n");
 		return;
 	}
+
+	char *endptr;
+	uintptr_t vstart = strtol(argv[0], &endptr, 0);
+	if (*endptr != '\0') {
+		cprintf("got invalid memory address \"%s\"\n", argv[0]);
+		return;
+	}
+	uintptr_t vend = strtol(argv[1], &endptr, 0);
+	if (*endptr != '\0') {
+		cprintf("got invalid memory address \"%s\"\n", argv[1]);
+		return;
+	}
+
+	if (vend < vstart) {
+		cprintf("got invalid address 0x%x-0x%x\n", argv[1], vstart, vend);
+		return;
+	}
+
+	if (strcmp(argv[2], "R") == 0) {
+		//
+	} else if (strcmp(argv[2], "RW") == 0) {
+		//
+	} else if (strcmp(argv[2], "RU") == 0) {
+		//
+	} else if (strcmp(argv[2], "RWU") == 0) {
+		//
+	} else {
+		cprintf("got invalid memory permission \"%s\"`\n", argv[2]);
+		return;
+	}
 }
 
 void mon_vmmap_show(int argc, char **argv) {
