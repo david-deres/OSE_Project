@@ -575,6 +575,21 @@ void show_pages(MemoryRange range) {
 	}
 }
 
+// replaces the existing mapping of the page containing va,
+// with a new mapping specified by the page table entry
+// returns the old page table entry for that address.
+//
+// does not modify references of either physical pages
+static pte_t replace_page_entry(void *va, pte_t pte) {
+	pte_t *cur_pte = pgdir_walk(kern_pgdir, va, true);
+	if (cur_pte == NULL) {
+		panic("Error: unable to get entry for virtual address 0x%x", va);
+	}
+	pte_t old_pte = *cur_pte;
+	*cur_pte = pte;
+	return old_pte;
+}
+
 // prints the contents of the memory at the given range as hex bytes,
 // can be either physical or virtual addresses.
 void dump_range(MemoryRange range) {
