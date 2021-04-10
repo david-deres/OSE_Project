@@ -192,6 +192,23 @@ void mon_vmmap_dump(int argc, char **argv) {
 		cprintf("not enough arguments for `vmmap dump`\n");
 		return;
 	}
+
+	AddressType type;
+	if (strcmp(argv[0], "p") == 0) {
+		type = PHYSICAL;
+	} else if (strcmp(argv[0], "v") == 0) {
+		type = VIRTUAL;
+	} else {
+		cprintf("got invalid address type \"%s\"\n", argv[0]);
+		return;
+	}
+
+	MemoryRange range;
+	if (!create_range(argv+1, &range, type)) {
+		return;
+	}
+
+	dump_range(range);
 }
 
 int

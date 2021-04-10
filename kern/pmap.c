@@ -575,6 +575,11 @@ void show_pages(MemoryRange range) {
 	}
 }
 
+// prints the contents of the memory at the given range as hex bytes,
+// can be either physical or virtual addresses.
+void dump_range(MemoryRange range) {
+	//
+}
 
 // --------------------------------------------------------------
 // Checking functions.
