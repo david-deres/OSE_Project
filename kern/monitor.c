@@ -104,7 +104,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 // given an array of 2 strings constucts a memory range
 //
 // on success returns true and places the result in `range`
-bool create_range(char **argv, MemoryRange *range) {
+bool create_range(char **argv, MemoryRange *range, AddressType type) {
 	char *endptr;
 	uintptr_t start = strtol(argv[0], &endptr, 0);
 	if (*endptr != '\0') {
@@ -122,7 +122,7 @@ bool create_range(char **argv, MemoryRange *range) {
 		return false;
 	}
 
-	*range = (MemoryRange) {start, end};
+	*range = (MemoryRange) {start, end, type};
 	return true;
 }
 
@@ -148,7 +148,7 @@ void mon_vmmap_perm(int argc, char **argv) {
 
 	MemoryRange range;
 
-	if (!create_range(argv, &range)) {
+	if (!create_range(argv, &range, VIRTUAL)) {
 		return;
 	}
 
@@ -180,7 +180,7 @@ void mon_vmmap_show(int argc, char **argv) {
 
 	MemoryRange range;
 
-	if (!create_range(argv, &range)) {
+	if (!create_range(argv, &range, VIRTUAL)) {
 		return;
 	}
 

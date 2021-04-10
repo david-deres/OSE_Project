@@ -16,10 +16,16 @@ extern size_t npages;
 
 extern pde_t *kern_pgdir;
 
+enum {
+	PHYSICAL,
+	VIRTUAL,
+} typedef AddressType;
+
 // a range of either virtual or physical memory where start <= end
 struct {
 	uintptr_t start;
 	uintptr_t end;
+	AddressType type;
 } typedef MemoryRange;
 
 
@@ -68,8 +74,8 @@ void	page_decref(struct PageInfo *pp);
 
 void	tlb_invalidate(pde_t *pgdir, void *va);
 
-bool    change_page_perm(MemoryRange virtual, int perm);
-void    show_pages(MemoryRange virtual);
+bool    change_page_perm(MemoryRange range, int perm);
+void    show_pages(MemoryRange range);
 
 static inline physaddr_t
 page2pa(struct PageInfo *pp)

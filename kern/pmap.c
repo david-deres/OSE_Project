@@ -526,17 +526,18 @@ tlb_invalidate(pde_t *pgdir, void *va)
 	invlpg(va);
 }
 
-bool change_page_perm(MemoryRange virtual, int perm) {
-	uintptr_t vstart_page = ROUNDDOWN(virtual.start, PGSIZE);
+bool change_page_perm(MemoryRange range, int perm) {
+	assert(range.type == VIRTUAL);
+	uintptr_t vstart_page = ROUNDDOWN(range.start, PGSIZE);
 	uintptr_t va;
-	for (va = vstart_page; va < virtual.end; va += PGSIZE) {
+	for (va = vstart_page; va < range.end; va += PGSIZE) {
 		if (page_lookup(kern_pgdir, (void *)va, NULL) == NULL) {
 			return false;
 		}
 	}
 
 	pte_t *page_table_entry;
-	for (va = vstart_page; va < virtual.end; va += PGSIZE) {
+	for (va = vstart_page; va < range.end; va += PGSIZE) {
 		page_lookup(kern_pgdir, (void *)va, &page_table_entry);
 		*page_table_entry = PTE_ADDR(*page_table_entry) | perm | PTE_P;
 	}
@@ -544,12 +545,13 @@ bool change_page_perm(MemoryRange virtual, int perm) {
 	return true;
 }
 
-void show_pages(MemoryRange virtual) {
-	uintptr_t vstart_page = ROUNDDOWN(virtual.start, PGSIZE);
+void show_pages(MemoryRange range) {
+	assert(range.type == VIRTUAL);
+	uintptr_t vstart_page = ROUNDDOWN(range.start, PGSIZE);
 	uintptr_t va;
 	pte_t *page_table_entry;
 	cprintf("VIRTUAL			|	PHYSICAL			|	PERMISSIONS\n");
-	for (va = vstart_page; va < virtual.end; va += PGSIZE) {
+	for (va = vstart_page; va < range.end; va += PGSIZE) {
 		if (page_lookup(kern_pgdir, (void *)va, &page_table_entry) != NULL) {
 			physaddr_t pa = PTE_ADDR(*page_table_entry);
 			char *perm;
