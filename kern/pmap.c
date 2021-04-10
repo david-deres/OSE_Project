@@ -578,7 +578,16 @@ void show_pages(MemoryRange range) {
 // prints the given number of bytes from a given address as hex bytes
 // all the bytes must be from the same page
 void dump_mem(char *bytes, size_t len) {
-	//
+	size_t i,j;
+
+	for (i=0; i < len; i+= 8) {
+		// print rows of 8 bytes at a time
+		for (j=i; j < MIN(len,i+8); j++) {
+			uint32_t byte = (uint32_t)bytes[j] & 0xff;
+			cprintf("0x%02x ", byte);
+		}
+		cprintf("\n");
+	}
 }
 
 // replaces the existing mapping of the page containing va,
