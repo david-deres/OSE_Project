@@ -101,6 +101,31 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
+// given an array of 2 strings constucts a memory range
+//
+// on success returns true and places the result in `range`
+bool create_range(char **argv, MemoryRange *range) {
+	char *endptr;
+	uintptr_t start = strtol(argv[0], &endptr, 0);
+	if (*endptr != '\0') {
+		cprintf("got invalid memory address \"%s\"\n", argv[0]);
+		return false;
+	}
+	uintptr_t end = strtol(argv[1], &endptr, 0);
+	if (*endptr != '\0') {
+		cprintf("got invalid memory address \"%s\"\n", argv[1]);
+		return false;
+	}
+
+	if (end < start) {
+		cprintf("got invalid address 0x%x-0x%x\n", start, end);
+		return false;
+	}
+
+	*range = (MemoryRange) {start, end};
+	return true;
+}
+
 void mon_vmmap_set(int argc, char **argv) {
 	if (argc < 4) {
 		cprintf("not enough arguments for `vmmap set`\n");
@@ -121,24 +146,11 @@ void mon_vmmap_perm(int argc, char **argv) {
 		return;
 	}
 
-	char *endptr;
-	uintptr_t vstart = strtol(argv[0], &endptr, 0);
-	if (*endptr != '\0') {
-		cprintf("got invalid memory address \"%s\"\n", argv[0]);
-		return;
-	}
-	uintptr_t vend = strtol(argv[1], &endptr, 0);
-	if (*endptr != '\0') {
-		cprintf("got invalid memory address \"%s\"\n", argv[1]);
-		return;
-	}
+	MemoryRange range;
 
-	if (vend < vstart) {
-		cprintf("got invalid address 0x%x-0x%x\n", argv[1], vstart, vend);
+	if (!create_range(argv, &range)) {
 		return;
 	}
-
-	MemoryRange range = {vstart, vend};
 
 	bool mapping_exists = false;
 
@@ -155,7 +167,7 @@ void mon_vmmap_perm(int argc, char **argv) {
 		return;
 	}
 	if (!mapping_exists) {
-		cprintf("missing mapping in address range 0x%x-0x%x\n", vstart, vend);
+		cprintf("missing mapping in address range 0x%x-0x%x\n", range.start, range.end);
 		return;
 	}
 }
