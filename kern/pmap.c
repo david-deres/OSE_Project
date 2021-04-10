@@ -575,6 +575,12 @@ void show_pages(MemoryRange range) {
 	}
 }
 
+// prints the given number of bytes from a given address as hex bytes
+// all the bytes must be from the same page
+void dump_mem(char *bytes, size_t len) {
+	//
+}
+
 // replaces the existing mapping of the page containing va,
 // with a new mapping specified by the page table entry
 // returns the old page table entry for that address.
@@ -593,7 +599,36 @@ static pte_t replace_page_entry(void *va, pte_t pte) {
 // prints the contents of the memory at the given range as hex bytes,
 // can be either physical or virtual addresses.
 void dump_range(MemoryRange range) {
-	//
+	while (range.start < range.end) {
+		uintptr_t vstart;
+		pte_t utemp_pte;
+
+		uintptr_t page_end = ROUNDDOWN(range.start + PGSIZE, PGSIZE);
+		size_t len = MIN(range.end, page_end) - range.start;
+
+		if (range.type == PHYSICAL) {
+			// temporaraly map utemp virtual address to page of range.start
+			// to allow reading from the page
+			utemp_pte = replace_page_entry(UTEMP, range.start | PTE_P);
+
+			uintptr_t page_start = ROUNDDOWN(range.start, PGSIZE);
+			vstart = (uintptr_t)UTEMP + (range.start - page_start);
+		} else {
+			vstart = range.start;
+		}
+
+		if (page_lookup(kern_pgdir, (void *)vstart, NULL) != NULL) {
+			dump_mem((char *)vstart, len);
+		} else {
+			cprintf("virtual addresses 0x%08x-0x%08x are unmapped\n", vstart, vstart+len);
+		}
+		range.start += len;
+
+		if (range.type == PHYSICAL) {
+			// restore old mapping to utemp
+			replace_page_entry(UTEMP, utemp_pte);
+		}
+	}
 }
 
 // --------------------------------------------------------------
