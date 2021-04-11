@@ -534,7 +534,9 @@ void change_page_perm(MemoryRange range, int perm) {
 	pte_t *page_table_entry;
 	for (va = vstart_page; va < range.end; va += PGSIZE) {
 		if (page_lookup(kern_pgdir, (void *)va, &page_table_entry) != NULL) {
-			*page_table_entry = PTE_ADDR(*page_table_entry) | perm | PTE_P;
+			// preserve flags except the permission flags
+			pte_t cleared_perms = *page_table_entry & ~(PTE_W | PTE_U);
+			*page_table_entry = cleared_perms | perm | PTE_P;
 		}
 	}
 }
