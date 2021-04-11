@@ -548,10 +548,10 @@ void show_pages(MemoryRange range) {
 	uintptr_t vstart_page = ROUNDDOWN(range.start, PGSIZE);
 	uintptr_t va;
 	pte_t *page_table_entry;
-	cprintf("VIRTUAL			|	PHYSICAL			|	PERMISSIONS\n");
+	cprintf("VIRTUAL PAGE	|	PHYSICAL PAGE	|	PERMISSIONS\n");
 	for (va = vstart_page; va < range.end; va += PGSIZE) {
 		if (page_lookup(kern_pgdir, (void *)va, &page_table_entry) != NULL) {
-			physaddr_t pa = PTE_ADDR(*page_table_entry);
+			physaddr_t pp = PGNUM(*page_table_entry);
 			char *perm;
 			switch (*page_table_entry & (PTE_W | PTE_U)) {
 				case PTE_W | PTE_U:
@@ -567,8 +567,8 @@ void show_pages(MemoryRange range) {
 					perm = "R--";
 					break;
 			}
-			cprintf("0x%08x-0x%08x	|	0x%08x-0x%08x	|	%s\n",
-					va, va+PGSIZE, pa, pa+PGSIZE, perm);
+			cprintf("0x%05x		|	0x%05x		|	%s\n",
+					PGNUM(va), pp, perm);
 		}
 	}
 }
