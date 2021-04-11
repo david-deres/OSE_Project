@@ -529,10 +529,10 @@ tlb_invalidate(pde_t *pgdir, void *va)
 // changes the permissions of all pages mapped to the given virtual address range
 void change_page_perm(MemoryRange range, int perm) {
 	assert(range.type == VIRTUAL);
-	uintptr_t vstart_page = ROUNDDOWN(range.start, PGSIZE);
-	uintptr_t va;
+	size_t vp;
 	pte_t *page_table_entry;
-	for (va = vstart_page; va < range.end; va += PGSIZE) {
+	for (vp = range.start; vp <= range.end; vp++) {
+		uintptr_t va = vp << PTXSHIFT;
 		if (page_lookup(kern_pgdir, (void *)va, &page_table_entry) != NULL) {
 			// preserve flags except the permission flags
 			pte_t cleared_perms = *page_table_entry & ~(PTE_W | PTE_U);
