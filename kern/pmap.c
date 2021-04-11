@@ -652,6 +652,20 @@ void clear_pages(MemoryRange range) {
 	}
 }
 
+// set the mapping of the given physical pages range to the virtual addresses,
+// starting at the given virtual page
+void set_pages(MemoryRange range, size_t vp) {
+	assert(range.type == PHYSICAL);;
+	size_t pp;
+	pte_t *page_table_entry;
+	for (pp = range.start; pp <= range.end; pp++, vp++) {
+		physaddr_t pa = pp  << PTXSHIFT;
+		uintptr_t va = vp << PTXSHIFT;
+		// defaults to permissive mapping to allow immediate access if needed
+		replace_page_entry((void *)va, pa | PTE_W | PTE_U | PTE_P);
+	}
+}
+
 // --------------------------------------------------------------
 // Checking functions.
 // --------------------------------------------------------------

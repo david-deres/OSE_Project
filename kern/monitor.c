@@ -28,8 +28,8 @@ static struct Command commands[] = {
 	{ "backtrace", "Display a backtrace of the current function", mon_backtrace },
 	{ "vmmap",
 "Modify the mapping of the virtual memory with the following arguments:\n\
-set {vstart} {vend} {pstart} {pend} - map the virtual pages vstart-vend\n\
-                                      to physical pages pstart-pend\n\
+set {pstart} {pend} {vstart}-   map the physical pages pstart-pend\n\
+                                to virtual pages starting at vstart\n\
 clear {vstart} {vend} - clear the mapping of virtual pages vstart-vend\n\
 perm {vstart} {vend} [R/RW/RU/RWU] - set the permissions\n\
     of the virtual pages, where R is read-only, RW is for read-write\n\
@@ -127,10 +127,24 @@ bool create_range(char **argv, MemoryRange *range, AddressType type) {
 }
 
 void mon_vmmap_set(int argc, char **argv) {
-	if (argc < 4) {
+	if (argc < 3) {
 		cprintf("not enough arguments for `vmmap set`\n");
 		return;
 	}
+	MemoryRange range;
+
+	if (!create_range(argv, &range, PHYSICAL)) {
+		return;
+	}
+
+	char *endptr;
+	uintptr_t vp = strtol(argv[2], &endptr, 0);
+	if (*endptr != '\0') {
+		cprintf("got invalid memory address \"%s\"\n", argv[2]);
+		return;
+	}
+
+	set_pages(range, vp);
 }
 
 void mon_vmmap_clear(int argc, char **argv) {

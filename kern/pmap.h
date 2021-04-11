@@ -78,6 +78,7 @@ void    change_page_perm(MemoryRange range, int perm);
 void    show_pages(MemoryRange range);
 void    dump_range(MemoryRange range);
 void	clear_pages(MemoryRange range);
+void	set_pages(MemoryRange range, size_t vp);
 
 static inline physaddr_t
 page2pa(struct PageInfo *pp)
