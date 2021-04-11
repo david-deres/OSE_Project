@@ -35,7 +35,7 @@ perm {vstart} {vend} [R/RW/RU/RWU] - set the permissions\n\
     of the virtual pages, where R is read-only, RW is for read-write\n\
     and U can be added to any of them to indicate user access\n\
 show {vstart} {vend} - show the mapping and permissions\n\
-    for virtual pages vstart-vend\n\
+    for pages contating virtual addresses vstart-vend\n\
 dump [v/p] {start} {end}- dump the contents of the addresses start-end\n\
     those are interpreted as virtual with 'v' or physical with 'p'",
 mon_vmmap },
