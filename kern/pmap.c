@@ -526,24 +526,17 @@ tlb_invalidate(pde_t *pgdir, void *va)
 	invlpg(va);
 }
 
+// changes the permissions of all pages mapped to the given virtual address range
 void change_page_perm(MemoryRange range, int perm) {
 	assert(range.type == VIRTUAL);
 	uintptr_t vstart_page = ROUNDDOWN(range.start, PGSIZE);
 	uintptr_t va;
-	for (va = vstart_page; va < range.end; va += PGSIZE) {
-		if (page_lookup(kern_pgdir, (void *)va, NULL) == NULL) {
-			cprintf("missing mapping in address range 0x%x-0x%x\n", range.start, range.end);
-			return;
-		}
-	}
-
 	pte_t *page_table_entry;
 	for (va = vstart_page; va < range.end; va += PGSIZE) {
-		page_lookup(kern_pgdir, (void *)va, &page_table_entry);
-		*page_table_entry = PTE_ADDR(*page_table_entry) | perm | PTE_P;
+		if (page_lookup(kern_pgdir, (void *)va, &page_table_entry) != NULL) {
+			*page_table_entry = PTE_ADDR(*page_table_entry) | perm | PTE_P;
+		}
 	}
-
-	return;
 }
 
 // for each entry mapping a physical page to the given virtual address range,
