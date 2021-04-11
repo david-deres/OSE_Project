@@ -138,6 +138,14 @@ void mon_vmmap_clear(int argc, char **argv) {
 		cprintf("not enough arguments for `vmmap clear`\n");
 		return;
 	}
+
+	MemoryRange range;
+
+	if (!create_range(argv, &range, VIRTUAL)) {
+		return;
+	}
+
+	clear_pages(range);
 }
 
 void mon_vmmap_perm(int argc, char **argv) {

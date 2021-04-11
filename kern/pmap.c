@@ -640,6 +640,18 @@ void dump_range(MemoryRange range) {
 	}
 }
 
+// removes the entries in the page table,
+// mapping physical addresses to the given virtual address range
+void clear_pages(MemoryRange range) {
+	assert(range.type == VIRTUAL);
+	uintptr_t vstart_page = ROUNDDOWN(range.start, PGSIZE);
+	uintptr_t va;
+	pte_t *page_table_entry;
+	for (va = vstart_page; va < range.end; va += PGSIZE) {
+		replace_page_entry((void *)va, 0);
+	}
+}
+
 // --------------------------------------------------------------
 // Checking functions.
 // --------------------------------------------------------------

@@ -77,6 +77,7 @@ void	tlb_invalidate(pde_t *pgdir, void *va);
 void    change_page_perm(MemoryRange range, int perm);
 void    show_pages(MemoryRange range);
 void    dump_range(MemoryRange range);
+void	clear_pages(MemoryRange range);
 
 static inline physaddr_t
 page2pa(struct PageInfo *pp)
