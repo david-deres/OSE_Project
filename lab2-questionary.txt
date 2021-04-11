@@ -110,3 +110,38 @@ kern/pmap.c
 kern/pmap.h
 === Q Describe your solution.
 ===   (free form, up to 500 words, don't need to use all 500!)
+The solution is a monitor command called ‘vmmap’
+which executes all the functionality required for the challenge
+through sub-commands, one for each specific task.
+
+The subcommand ‘show’ displays the mapping between virtual
+and physical addresses at a given range as a table:
+column 1 contains the virtual pages in the range,
+column 2 contains the corresponding physical pages,
+and column 3 contains their permissions.
+Since the other interactions are done at page granuality,
+the subcommand prints the page number,
+for both the physical and virtual pages,
+so those can be used later.
+
+The subcommand ‘perm’ takes a range of virtual page numbers
+and changes their permissions to one of 4 possibilities:
+R, RW, RU, RWU, where R indicates read access,
+W indicates write acces and U indicates access by the user environment.
+
+The subcommand ‘set’ takes a range of physical page numbers
+and a virtual page number,
+and maps the physical pages to the same number of virtual pages,
+starting from the given virtual page.
+The mapping is initially as permissive as possible,
+in case it needs to be used immediately by the kernel,
+and should be explicitly restricted with ‘perm’.
+
+The subcommand ‘clear’ takes a range of virtual page numbers
+and removes any mapping of physical pages to them.
+
+The subcommand ‘dump’ takes a range of memory addresses
+along with a character indicating its type:
+‘v’ for virtual memory and ‘p’ for physical.
+It then prints each byte in the range as a hexadecimal number,
+with at most 8 bytes displayed per line.
