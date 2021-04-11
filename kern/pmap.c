@@ -546,6 +546,8 @@ void change_page_perm(MemoryRange range, int perm) {
 	return;
 }
 
+// for each entry mapping a physical page to the given virtual address range,
+// displays its virtual and physical addresses, and the access permissions for the entry
 void show_pages(MemoryRange range) {
 	assert(range.type == VIRTUAL);
 	uintptr_t vstart_page = ROUNDDOWN(range.start, PGSIZE);
