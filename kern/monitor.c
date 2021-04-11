@@ -28,9 +28,9 @@ static struct Command commands[] = {
 	{ "backtrace", "Display a backtrace of the current function", mon_backtrace },
 	{ "vmmap",
 "Modify the mapping of the virtual memory with the following arguments:\n\
-set {vstart} {vend} {pstart} {pend} - map the virtual addresses vstart-vend\n\
-                                      to physical addresses pstart-pend\n\
-clear {vstart} {vend} - clear the mapping of virtual addresses vstart-vend\n\
+set {vstart} {vend} {pstart} {pend} - map the virtual pages vstart-vend\n\
+                                      to physical pages pstart-pend\n\
+clear {vstart} {vend} - clear the mapping of virtual pages vstart-vend\n\
 perm {vstart} {vend} [R/RW/RU/RWU] - set the permissions\n\
     of the virtual addresses, where R is read-only, RW is for read-write\n\
     and U can be added to any of them to indicate user access\n\

@@ -644,10 +644,10 @@ void dump_range(MemoryRange range) {
 // mapping physical addresses to the given virtual address range
 void clear_pages(MemoryRange range) {
 	assert(range.type == VIRTUAL);
-	uintptr_t vstart_page = ROUNDDOWN(range.start, PGSIZE);
-	uintptr_t va;
+	size_t vp;
 	pte_t *page_table_entry;
-	for (va = vstart_page; va < range.end; va += PGSIZE) {
+	for (vp = range.start; vp <= range.end; vp++) {
+		uintptr_t va = vp  << PTXSHIFT;
 		replace_page_entry((void *)va, 0);
 	}
 }
