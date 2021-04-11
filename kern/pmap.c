@@ -545,11 +545,11 @@ void change_page_perm(MemoryRange range, int perm) {
 // displays its virtual and physical addresses, and the access permissions for the entry
 void show_pages(MemoryRange range) {
 	assert(range.type == VIRTUAL);
-	uintptr_t vstart_page = ROUNDDOWN(range.start, PGSIZE);
-	uintptr_t va;
+	size_t vp;
 	pte_t *page_table_entry;
 	cprintf("VIRTUAL			|	PHYSICAL			|	PERMISSIONS\n");
-	for (va = vstart_page; va < range.end; va += PGSIZE) {
+	for (vp = range.start; vp <= range.end; vp++) {
+		uintptr_t va = vp << PTXSHIFT;
 		if (page_lookup(kern_pgdir, (void *)va, &page_table_entry) != NULL) {
 			physaddr_t pa = PTE_ADDR(*page_table_entry);
 			char *perm;
