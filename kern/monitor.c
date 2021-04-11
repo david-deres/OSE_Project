@@ -152,22 +152,16 @@ void mon_vmmap_perm(int argc, char **argv) {
 		return;
 	}
 
-	bool mapping_exists = false;
-
 	if (strcmp(argv[2], "R") == 0) {
-		mapping_exists = change_page_perm(range, 0);
+		change_page_perm(range, 0);
 	} else if (strcmp(argv[2], "RW") == 0) {
-		mapping_exists = change_page_perm(range, PTE_W);
+		change_page_perm(range, PTE_W);
 	} else if (strcmp(argv[2], "RU") == 0) {
-		mapping_exists = change_page_perm(range, PTE_U);
+		change_page_perm(range, PTE_U);
 	} else if (strcmp(argv[2], "RWU") == 0) {
-		mapping_exists = change_page_perm(range, PTE_W | PTE_U);
+		change_page_perm(range, PTE_W | PTE_U);
 	} else {
 		cprintf("got invalid memory permission \"%s\"\n", argv[2]);
-		return;
-	}
-	if (!mapping_exists) {
-		cprintf("missing mapping in address range 0x%x-0x%x\n", range.start, range.end);
 		return;
 	}
 }

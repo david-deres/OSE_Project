@@ -526,13 +526,14 @@ tlb_invalidate(pde_t *pgdir, void *va)
 	invlpg(va);
 }
 
-bool change_page_perm(MemoryRange range, int perm) {
+void change_page_perm(MemoryRange range, int perm) {
 	assert(range.type == VIRTUAL);
 	uintptr_t vstart_page = ROUNDDOWN(range.start, PGSIZE);
 	uintptr_t va;
 	for (va = vstart_page; va < range.end; va += PGSIZE) {
 		if (page_lookup(kern_pgdir, (void *)va, NULL) == NULL) {
-			return false;
+			cprintf("missing mapping in address range 0x%x-0x%x\n", range.start, range.end);
+			return;
 		}
 	}
 
@@ -542,7 +543,7 @@ bool change_page_perm(MemoryRange range, int perm) {
 		*page_table_entry = PTE_ADDR(*page_table_entry) | perm | PTE_P;
 	}
 
-	return true;
+	return;
 }
 
 void show_pages(MemoryRange range) {

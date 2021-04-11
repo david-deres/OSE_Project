@@ -74,7 +74,7 @@ void	page_decref(struct PageInfo *pp);
 
 void	tlb_invalidate(pde_t *pgdir, void *va);
 
-bool    change_page_perm(MemoryRange range, int perm);
+void    change_page_perm(MemoryRange range, int perm);
 void    show_pages(MemoryRange range);
 void    dump_range(MemoryRange range);
 
