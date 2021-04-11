@@ -549,7 +549,7 @@ void show_pages(MemoryRange range) {
 	uintptr_t va;
 	pte_t *page_table_entry;
 	cprintf("VIRTUAL PAGE	|	PHYSICAL PAGE	|	PERMISSIONS\n");
-	for (va = vstart_page; va < range.end; va += PGSIZE) {
+	for (va = vstart_page; va <= range.end; va += PGSIZE) {
 		if (page_lookup(kern_pgdir, (void *)va, &page_table_entry) != NULL) {
 			physaddr_t pp = PGNUM(*page_table_entry);
 			char *perm;
@@ -606,11 +606,11 @@ static pte_t replace_page_entry(void *va, pte_t pte) {
 // prints the contents of the memory at the given range as hex bytes,
 // can be either physical or virtual addresses.
 void dump_range(MemoryRange range) {
-	while (range.start < range.end) {
+	while (range.start <= range.end) {
 		uintptr_t vstart;
 		pte_t utemp_pte1, utemp_pte2;
 
-		size_t len = MIN(range.end - range.start, PGSIZE);
+		size_t len = MIN(range.end - range.start + 1, PGSIZE);
 
 		if (range.type == PHYSICAL) {
 			// temporaraly map utemp virtual address to page of range.start
