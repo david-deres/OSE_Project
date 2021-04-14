@@ -136,9 +136,6 @@ guard page for user stack overflow error detection
 ===    SIZE  DATA-STRUCTURE         NAME/DESCRIPTION
 ===    42    "struct Segdesc gdt[]" "Global descriptor table"
 
-
-SIZE  DATA-STRUCTURE         NAME/DESCRIPTION
-
 4      "pde_t"                  "1 PDE table fully allocated"
 
 256    "pte_t"                  "64 PTE tables with 1024 entries to map 2^16 pages"
