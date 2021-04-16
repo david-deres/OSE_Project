@@ -59,13 +59,13 @@ guard page for user stack overflow error detection
 ===    42    0x98765 "struct Segdesc gdt[]" "Global descriptor table"
 ===    50    0x00011 ""                     "boot loader code"
 
-956     0xef000000    "struct PageInfo *pages"             "UPAGES - pages metadata structure"
+956     0xef000000    "struct PageInfo *pages"    "Physical Pages Metadata"
 
-957     0xef400000    "pde_t *kern_pgdir"                  "UVPT - current page table"
+957     0xef400000    "pde_t *kern_pgdir"         "Page Directory"
 
-959     0xefff8000    "extern char bootstack[]"             "kernel stack pages"
+959     0xefff8000    "extern char bootstack[]"   "Kernel Stack"
 
-960     0xf0000000    "physaddr_t *some_page"               "mapped physical memory pages"
+960     0xf0000000    ""                          "Remapped Physical Memory"
 
 ...      ...            ...                                 ...
 
@@ -134,9 +134,9 @@ guard page for user stack overflow error detection
 ===    SIZE  DATA-STRUCTURE         NAME/DESCRIPTION
 ===    42    "struct Segdesc gdt[]" "Global descriptor table"
 
-4      "pde_t"                  "page directory"
+4      "pde_t *kern_pgdir"      "Page Directory"
 
-256    "pte_t"                  "page tables"
+256    ""                       "Page Tables"
 
 
 
