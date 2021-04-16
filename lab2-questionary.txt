@@ -30,8 +30,6 @@ guard page for user stack overflow error detection
 
     0x01234025
 
-    ANOTHER OPTION: 0x1234E25 (PTE_AVAILABLE is set to 0xE00) ?????????????
-
 === Q Consider JOS kernel code:
 ===     mystery_t x;
 ===   	char* value = return_a_pointer();
