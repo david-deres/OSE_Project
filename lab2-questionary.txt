@@ -85,13 +85,13 @@ guard page for user stack overflow error detection
 === Q Which virtual addresses are readable by the user?
 ===   (in the form ADDR1-ADDR2, if none, specify NONE)
 
-    0x0-0xeebfe000 ??? NOT sure about the first part
+    0x0-0xeebfe000
     0xeebff000-0xef800000
 
 === Q Which virtual addresses are writable by the user?
 ===   (in the form ADDR1-ADDR2, if none, specify NONE)
 
-    0x0-0xeebfe000 ??? SAME
+    0x0-0xeebfe000
     0xeebff000-0xeec00000
 
 
@@ -100,7 +100,7 @@ guard page for user stack overflow error detection
 ===   before full TLB flush). What is the minimal N to gain full
 ===   control of the system from hacker's user space process?
 
-     2 (PTE_U + PTE_W)??? 
+     0x20080
 
 === Q What's the maximum amount of physical memory this kernel can
 ===   support? (number of megabytes, without MB suffix)
