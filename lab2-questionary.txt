@@ -134,9 +134,9 @@ guard page for user stack overflow error detection
 ===    SIZE  DATA-STRUCTURE         NAME/DESCRIPTION
 ===    42    "struct Segdesc gdt[]" "Global descriptor table"
 
-4      "pde_t *kern_pgdir"      "Page Directory"
+256    "pte_t *p_table"           "Page Tables*64"
 
-256    ""                       "Page Tables"
+512    "struct PageInfo *pages"   "pages managment DS"
 
 
 
