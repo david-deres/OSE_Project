@@ -97,10 +97,22 @@ boot_alloc(uint32_t n)
 	// Allocate a chunk large enough to hold 'n' bytes, then update
 	// nextfree.  Make sure nextfree is kept aligned
 	// to a multiple of PGSIZE.
-	//
-	// LAB 2: Your code here.
 
-	return NULL;
+	char *chunk = nextfree;
+
+	if (n == 0) {
+		return chunk;
+	}
+
+	char *next_addr = ROUNDUP(nextfree + n, PGSIZE);
+
+	if ((uintptr_t)next_addr > KERNBASE + PTSIZE) {
+		panic("Error: Out of memory");
+	}
+
+	nextfree = next_addr;
+
+	return chunk;
 }
 
 // Set up a two-level page table:
@@ -120,9 +132,6 @@ mem_init(void)
 
 	// Find out how much memory the machine has (npages & npages_basemem).
 	i386_detect_memory();
-
-	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -144,7 +153,8 @@ mem_init(void)
 	// each physical page, there is a corresponding struct PageInfo in this
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
-	// Your code goes here:
+	pages = boot_alloc(npages * sizeof(struct PageInfo));
+	memset(pages, 0, npages * sizeof(struct PageInfo));
 
 
 	//////////////////////////////////////////////////////////////////////
@@ -173,6 +183,9 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+	size_t pages_size = ROUNDUP(sizeof(struct PageInfo) * npages, PGSIZE);
+	boot_map_region(kern_pgdir, UPAGES, pages_size, PADDR(pages), PTE_U | PTE_P);
+	boot_map_region(kern_pgdir, (uintptr_t)pages, pages_size, PADDR(pages), PTE_W | PTE_P);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map the 'envs' array read-only by the user at linear address UENVS
@@ -193,6 +206,7 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W | PTE_P);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -202,6 +216,8 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+	size_t kernmem_size = ROUNDUP((uintptr_t)-1 - KERNBASE, PGSIZE);
+	boot_map_region(kern_pgdir, KERNBASE, kernmem_size, 0, PTE_W | PTE_P);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -262,9 +278,25 @@ page_init(void)
 	// free pages!
 	size_t i;
 	for (i = 0; i < npages; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+		physaddr_t addr = page2pa(&pages[i]);
+		if (addr == 0) {
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+		} else if (addr >= PGSIZE && addr < npages_basemem * PGSIZE) {
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		} else if (addr >= IOPHYSMEM && addr < EXTPHYSMEM) {
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+		} else if (addr >= EXTPHYSMEM && addr < PADDR(boot_alloc(0))) {
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+		} else {
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
 	}
 }
 
@@ -283,8 +315,19 @@ page_init(void)
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
-	// Fill this function in
-	return 0;
+	struct PageInfo *page = page_free_list;
+	if (page == NULL) {
+		return NULL;
+	}
+
+	page_free_list = page->pp_link;
+	page->pp_link = NULL;
+
+	if (alloc_flags & ALLOC_ZERO) {
+		memset(page2kva(page), '\0', PGSIZE);
+	}
+
+	return page;
 }
 
 //
@@ -297,6 +340,11 @@ page_free(struct PageInfo *pp)
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
+	if (pp->pp_link != NULL || pp->pp_ref != 0) {
+		panic("Error: Double free");
+	}
+	pp->pp_link = page_free_list;
+	page_free_list = pp;
 }
 
 //
@@ -335,8 +383,21 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	// Fill this function in
-	return NULL;
+	pde_t *pgdir_entry = pgdir + PDX(va);
+	if ((*pgdir_entry & PTE_P) == 0) {
+		if (create == false) {
+			return NULL;
+		}
+		struct PageInfo *new_page = page_alloc(ALLOC_ZERO);
+		if (new_page == NULL) {
+			return NULL;
+		}
+		new_page->pp_ref = 1;
+		*pgdir_entry = page2pa(new_page) | PTE_P | PTE_W | PTE_U;
+	}
+	
+	pte_t *page_table = KADDR(PTE_ADDR(*pgdir_entry));
+	return page_table + PTX(va);
 }
 
 //
@@ -354,6 +415,14 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	physaddr_t cur_pa = pa;
+	for (; cur_pa < pa + size; cur_pa += PGSIZE, va += PGSIZE) {
+		pte_t *page_table_entry = pgdir_walk(pgdir, (const void *)va, true);
+		if (page_table_entry == NULL) {
+			panic("Error: unable to map region");
+		}
+		*page_table_entry = cur_pa | perm | PTE_P ;
+	}
 }
 
 //
@@ -385,6 +454,18 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+	
+	// preemptivly increase refcount,
+	// to prevent page from being deallocated if re-inserted
+	pp->pp_ref++;
+	page_remove(pgdir, va);
+	pte_t *page_table_entry = pgdir_walk(pgdir, va, true);
+	if (page_table_entry == NULL) {
+		// page hasn't been inserted, so the refcount shoudn't increase
+		pp->pp_ref--;
+		return -E_NO_MEM;
+	}
+	*page_table_entry = page2pa(pp) | perm | PTE_P;
 	return 0;
 }
 
@@ -403,7 +484,18 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
+	pte_t *page_table_entry = pgdir_walk(pgdir, va, false);
+	if (page_table_entry == NULL) {
+		return NULL;
+	}
+	if ((*page_table_entry & PTE_P) == 0) {
+		return NULL;
+	}
+	if (pte_store != NULL) {
+		*pte_store = page_table_entry;
+	}
+	physaddr_t pa = PTE_ADDR(*page_table_entry);
+	return pa2page(pa);
 }
 
 //
@@ -425,6 +517,14 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+	pte_t *page_table_entry;
+	struct PageInfo *page = page_lookup(pgdir, va, &page_table_entry);
+	if (page == NULL) {
+		return;
+	}
+	tlb_invalidate(pgdir, va);
+	memset(page_table_entry, 0, sizeof(pte_t));
+	page_decref(page);
 }
 
 //
@@ -484,6 +584,145 @@ user_mem_assert(struct Env *env, const void *va, size_t len, int perm)
 	}
 }
 
+// changes the permissions of all pages mapped to the given virtual address range
+void change_page_perm(MemoryRange range, int perm) {
+	assert(range.type == VIRTUAL);
+	size_t vp;
+	pte_t *page_table_entry;
+	for (vp = range.start; vp <= range.end; vp++) {
+		uintptr_t va = vp << PTXSHIFT;
+		if (page_lookup(kern_pgdir, (void *)va, &page_table_entry) != NULL) {
+			// preserve flags except the permission flags
+			pte_t cleared_perms = *page_table_entry & ~(PTE_W | PTE_U);
+			*page_table_entry = cleared_perms | perm | PTE_P;
+		}
+	}
+}
+
+// for each entry mapping a physical page to the given virtual address range,
+// displays its virtual and physical addresses, and the access permissions for the entry
+void show_pages(MemoryRange range) {
+	assert(range.type == VIRTUAL);
+	uintptr_t vstart_page = ROUNDDOWN(range.start, PGSIZE);
+	uintptr_t va;
+	pte_t *page_table_entry;
+	cprintf("VIRTUAL PAGE	|	PHYSICAL PAGE	|	PERMISSIONS\n");
+	for (va = vstart_page; va <= range.end; va += PGSIZE) {
+		if (page_lookup(kern_pgdir, (void *)va, &page_table_entry) != NULL) {
+			physaddr_t pp = PGNUM(*page_table_entry);
+			char *perm;
+			switch (*page_table_entry & (PTE_W | PTE_U)) {
+				case PTE_W | PTE_U:
+					perm = "RWU";
+					break;
+				case PTE_W:
+					perm = "PW-";
+					break;
+				case PTE_U:
+					perm = "R-U";
+					break;
+				default:
+					perm = "R--";
+					break;
+			}
+			cprintf("0x%05x		|	0x%05x		|	%s\n",
+					PGNUM(va), pp, perm);
+		}
+	}
+}
+
+// prints the given number of bytes from a given address as hex bytes
+// all the bytes must be from the same page
+void dump_mem(char *bytes, size_t len) {
+	size_t i,j;
+
+	for (i=0; i < len; i+= 8) {
+		// print rows of 8 bytes at a time
+		for (j=i; j < MIN(len,i+8); j++) {
+			uint32_t byte = (uint32_t)bytes[j] & 0xff;
+			cprintf("0x%02x ", byte);
+		}
+		cprintf("\n");
+	}
+}
+
+// replaces the existing mapping of the page containing va,
+// with a new mapping specified by the page table entry
+// returns the old page table entry for that address.
+//
+// does not modify references of either physical pages
+static pte_t replace_page_entry(void *va, pte_t pte) {
+	pte_t *cur_pte = pgdir_walk(kern_pgdir, va, true);
+	if (cur_pte == NULL) {
+		panic("Error: unable to get entry for virtual address 0x%x", va);
+	}
+	pte_t old_pte = *cur_pte;
+	*cur_pte = pte;
+	return old_pte;
+}
+
+// prints the contents of the memory at the given range as hex bytes,
+// can be either physical or virtual addresses.
+void dump_range(MemoryRange range) {
+	while (range.start <= range.end) {
+		uintptr_t vstart;
+		pte_t utemp_pte1, utemp_pte2;
+
+		size_t len = MIN(range.end - range.start + 1, PGSIZE);
+
+		if (range.type == PHYSICAL) {
+			// temporaraly map utemp virtual address to page of range.start
+			// to allow reading from the page
+			utemp_pte1 = replace_page_entry(UTEMP, range.start | PTE_P);
+			// map two adjacent pages to prevent broken-up lines at page boundary
+			utemp_pte2 = replace_page_entry(UTEMP + PGSIZE, (range.start + PGSIZE) | PTE_P);
+
+			uintptr_t page_start = ROUNDDOWN(range.start, PGSIZE);
+			vstart = (uintptr_t)UTEMP + (range.start - page_start);
+		} else {
+			vstart = range.start;
+		}
+
+		if (page_lookup(kern_pgdir, (void *)vstart, NULL) != NULL) {
+			dump_mem((char *)vstart, len);
+		} else {
+			cprintf("virtual addresses 0x%08x-0x%08x are unmapped\n", vstart, vstart+len);
+		}
+		range.start += len;
+
+		if (range.type == PHYSICAL) {
+			// restore old mapping to utemp
+			replace_page_entry(UTEMP, utemp_pte1);
+			replace_page_entry(UTEMP + PGSIZE, utemp_pte2);
+		}
+	}
+}
+
+// removes the entries in the page table,
+// mapping physical addresses to the given virtual address range
+void clear_pages(MemoryRange range) {
+	assert(range.type == VIRTUAL);
+	size_t vp;
+	pte_t *page_table_entry;
+	for (vp = range.start; vp <= range.end; vp++) {
+		uintptr_t va = vp  << PTXSHIFT;
+		replace_page_entry((void *)va, 0);
+	}
+}
+
+// set the mapping of the given physical pages range to the virtual addresses,
+// starting at the given virtual page
+void set_pages(MemoryRange range, size_t vp) {
+	assert(range.type == PHYSICAL);;
+	size_t pp;
+	pte_t *page_table_entry;
+	for (pp = range.start; pp <= range.end; pp++, vp++) {
+		physaddr_t pa = pp  << PTXSHIFT;
+		uintptr_t va = vp << PTXSHIFT;
+		// defaults to permissive mapping to allow immediate access if needed
+		replace_page_entry((void *)va, pa | PTE_W | PTE_U | PTE_P);
+	}
+}
 
 // --------------------------------------------------------------
 // Checking functions.

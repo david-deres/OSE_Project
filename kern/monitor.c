@@ -11,6 +11,7 @@
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
 #include <kern/trap.h>
+#include <kern/pmap.h>
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
@@ -25,7 +26,22 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "backtrace", "Display a backtrace of the current function", mon_backtrace },
+	{ "vmmap",
+"Modify the mapping of the virtual memory with the following arguments:\n\
+set {pstart} {pend} {vstart}-   map the physical pages pstart-pend\n\
+                                to virtual pages starting at vstart\n\
+clear {vstart} {vend} - clear the mapping of virtual pages vstart-vend\n\
+perm {vstart} {vend} [R/RW/RU/RWU] - set the permissions\n\
+    of the virtual pages vstart-vend, where R is read-only,\n\
+    RW is for read-write, and U with any of the above indicate user access\n\
+show {vstart} {vend} - show the mapping and permissions\n\
+    for pages containing virtual addresses vstart-vend\n\
+dump [v/p] {start} {end}- dump the contents of the addresses start-end\n\
+    those are interpreted as virtual with 'v' or physical with 'p'",
+mon_vmmap },
 };
+
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -59,11 +75,182 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// Your code here.
+	uint32_t ebp = read_ebp();
+	cprintf("Stack backtrace:\n");
+	while (ebp != 0) {
+		// the return address is stored after the previous ebp
+		uintptr_t eip = *((uintptr_t*)ebp+1);
+		struct Eipdebuginfo debug_info;
+
+		debuginfo_eip(eip, &debug_info);
+
+		cprintf("ebp %x  eip %x  args", ebp, eip);
+		int i;
+		for (i=0; i<5; i++) {
+			uint32_t arg = *((uint32_t*)ebp + 2 + i);
+			cprintf(" %08x", arg);
+		}
+		cprintf("\n");
+		cprintf("         %s:%d: %.*s+%d\n",
+				debug_info.eip_file,
+				debug_info.eip_line,
+				debug_info.eip_fn_namelen,
+				debug_info.eip_fn_name,
+				eip - debug_info.eip_fn_addr);
+		ebp = *(uint32_t*)ebp;
+	}
 	return 0;
 }
 
+// given an array of 2 strings constucts a memory range
+//
+// on success returns true and places the result in `range`
+bool create_range(char **argv, MemoryRange *range, AddressType type) {
+	char *endptr;
+	uintptr_t start = strtol(argv[0], &endptr, 0);
+	if (*endptr != '\0') {
+		cprintf("got invalid memory address \"%s\"\n", argv[0]);
+		return false;
+	}
+	uintptr_t end = strtol(argv[1], &endptr, 0);
+	if (*endptr != '\0') {
+		cprintf("got invalid memory address \"%s\"\n", argv[1]);
+		return false;
+	}
 
+	if (end < start) {
+		cprintf("got invalid address 0x%x-0x%x\n", start, end);
+		return false;
+	}
+
+	*range = (MemoryRange) {start, end, type};
+	return true;
+}
+
+void mon_vmmap_set(int argc, char **argv) {
+	if (argc < 3) {
+		cprintf("not enough arguments for `vmmap set`\n");
+		return;
+	}
+	MemoryRange range;
+
+	if (!create_range(argv, &range, PHYSICAL)) {
+		return;
+	}
+
+	char *endptr;
+	uintptr_t vp = strtol(argv[2], &endptr, 0);
+	if (*endptr != '\0') {
+		cprintf("got invalid memory address \"%s\"\n", argv[2]);
+		return;
+	}
+
+	set_pages(range, vp);
+}
+
+void mon_vmmap_clear(int argc, char **argv) {
+	if (argc < 2) {
+		cprintf("not enough arguments for `vmmap clear`\n");
+		return;
+	}
+
+	MemoryRange range;
+
+	if (!create_range(argv, &range, VIRTUAL)) {
+		return;
+	}
+
+	clear_pages(range);
+}
+
+void mon_vmmap_perm(int argc, char **argv) {
+	if (argc < 3) {
+		cprintf("not enough arguments for `vmmap perm`\n");
+		return;
+	}
+
+	MemoryRange range;
+
+	if (!create_range(argv, &range, VIRTUAL)) {
+		return;
+	}
+
+	if (strcmp(argv[2], "R") == 0) {
+		change_page_perm(range, 0);
+	} else if (strcmp(argv[2], "RW") == 0) {
+		change_page_perm(range, PTE_W);
+	} else if (strcmp(argv[2], "RU") == 0) {
+		change_page_perm(range, PTE_U);
+	} else if (strcmp(argv[2], "RWU") == 0) {
+		change_page_perm(range, PTE_W | PTE_U);
+	} else {
+		cprintf("got invalid memory permission \"%s\"\n", argv[2]);
+		return;
+	}
+}
+
+void mon_vmmap_show(int argc, char **argv) {
+	if (argc < 2) {
+		cprintf("not enough arguments for `vmmap show`\n");
+		return;
+	}
+
+	MemoryRange range;
+
+	if (!create_range(argv, &range, VIRTUAL)) {
+		return;
+	}
+
+	show_pages(range);
+}
+
+void mon_vmmap_dump(int argc, char **argv) {
+	if (argc < 3) {
+		cprintf("not enough arguments for `vmmap dump`\n");
+		return;
+	}
+
+	AddressType type;
+	if (strcmp(argv[0], "p") == 0) {
+		type = PHYSICAL;
+	} else if (strcmp(argv[0], "v") == 0) {
+		type = VIRTUAL;
+	} else {
+		cprintf("got invalid address type \"%s\"\n", argv[0]);
+		return;
+	}
+
+	MemoryRange range;
+	if (!create_range(argv+1, &range, type)) {
+		return;
+	}
+
+	dump_range(range);
+}
+
+int
+mon_vmmap(int argc, char **argv, struct Trapframe *tf) {
+	if (argc < 2) {
+		cprintf("not enough arguments for `vmmap`\n");
+		return 0;
+	}
+	char *subcommand = argv[1];
+	char **subargs = argv + 2;
+	if (strcmp(subcommand, "set") == 0) {
+		mon_vmmap_set(argc - 2, subargs);
+	} else if (strcmp(subcommand, "clear") == 0) {
+		mon_vmmap_clear(argc - 2, subargs);
+	} else if (strcmp(subcommand, "perm") == 0) {
+		mon_vmmap_perm(argc - 2, subargs);
+	} else if (strcmp(subcommand, "show") == 0) {
+		mon_vmmap_show(argc - 2, subargs);
+	} else if (strcmp(subcommand, "dump") == 0) {
+		mon_vmmap_dump(argc - 2, subargs);
+	} else {
+		cprintf("Unknown subcommand for `vmmap`\n");
+	}
+	return 0;
+}
 
 /***** Kernel monitor command interpreter *****/
 
