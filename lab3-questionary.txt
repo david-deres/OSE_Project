@@ -27,11 +27,17 @@ to ones where an error code is not pushed onto the stack.
 === Q Did you have to do anything to make the user/softint program
 ===   behave correctly?
 ===   (yes/no)
+yes
 
 === Q The grade script expects it to produce a general protection
 ===   fault (trap 13), but softint's code says int $14. Why should
 ===   this produce interrupt vector 13? 
 ===   (free form, 1 sentence)
+INT requires that CPL<=DPL before executing an interrupt,
+but softint is run in user mode where CPL==3, despite DPL==0 for trap 14,
+so the proccessor produces trap 13 in response to illigal INT execution.
+
+TODO: verify that by setting dpl as 3, the softint test fails
 
 === Q What happens if the kernel actually allows softint's int $14
 ===   instruction to invoke the kernel's page fault handler (which is
