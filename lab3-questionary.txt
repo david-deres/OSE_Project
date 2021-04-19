@@ -55,6 +55,15 @@ so the handler will handle a page fault based on arbitrary values.
 ===   above and what incorrect setup would cause it to trigger a
 ===   general protection fault?
 ===   (free form)
+the breakpoint test attempts to generate a breakpoint exception with INT 3
+before generating an interrupt, INT checks if the CPL<=DPL for that interrupt.
+so to get the exception to work, the last argument of SETGATE,
+which sets the DPL for that interrupt, must be 3,
+which is the CPL of the test since it is executed in user mode.
+otherwise, proccessor produces a general protection fault,
+in response to illigal INT execution.
+
+TODO: verify that without DPL==3 the breakpoint test fails
 
 === Q What do you think is the point of these mechanisms, particularly
 ===   in light of what the user/softint test program does? 
