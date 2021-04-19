@@ -116,6 +116,13 @@ env_init(void)
 {
 	// Set up envs array
 	// LAB 3: Your code here.
+	int i=0;
+	for (i=0;i<NENV;i++){
+		envs[i].env_status=ENV_FREE;
+		envs[i].env_id=0;
+		envs[i].env_link=env_free_list;
+		env_free_list=&envs[i];
+	}
 
 	// Per-CPU part of the initialization
 	env_init_percpu();
@@ -179,6 +186,12 @@ env_setup_vm(struct Env *e)
 	//    - The functions in kern/pmap.h are handy.
 
 	// LAB 3: Your code here.
+	p->pp_ref++;
+	e->env_pgdir=(pde_t*)page2kva(p);
+
+	for (int i=PDX(UTOP); i<NPDENTRIES; i++){
+		memcpy(e->env_pgdir[i], kern_pgdir[i], PGSIZE/NPDENTRIES);
+	}
 
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
@@ -323,11 +336,21 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
+	if (e==NULL){
+		panic("load_icode: BAD ARGUMENTS");
+	}
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
+	struct PageInfo *newPage = page_alloc(ALLOC_ZERO);
+	if (newPage==NULL){
+		panic("load_icode: NO FREE MEMORY");
+	}
+	if (page_insert(e->env_pgdir, newPage, USTACKTOP-PGSIZE, PTE_P | PTE_U | PTE_W)==-E_NO_MEM){
+		panic("load_icode: NO FREE MEMORY");
+	}
 }
 
 //
