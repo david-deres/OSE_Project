@@ -190,7 +190,7 @@ env_setup_vm(struct Env *e)
 	e->env_pgdir=(pde_t*)page2kva(p);
 
 	for (i=PDX(UTOP); i<NPDENTRIES; i++){
-		memcpy((void*)e->env_pgdir[i], (void*)kern_pgdir[i], PGSIZE/NPDENTRIES);
+		e->env_pgdir[i]=kern_pgdir[i];
 	}
 
 	// UVPT maps the env's own page table read-only.
