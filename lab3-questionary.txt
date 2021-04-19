@@ -68,6 +68,10 @@ TODO: verify that without DPL==3 the breakpoint test fails
 === Q What do you think is the point of these mechanisms, particularly
 ===   in light of what the user/softint test program does? 
 ===   (free form, 1 sentence)
+ensuring the correctness of the OS,
+by limiting the interrupts that can be triggered by user enviorments,
+so that interrupts are only triggered by their expected causes,
+and can then be handled appropriately by the kernel.
 
 === Q In Exercise 9, what causes the page fault which panics the
 ===   kernel when running user/breakpoint?
