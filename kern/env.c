@@ -289,11 +289,11 @@ region_alloc(struct Env *e, void *va, size_t len)
 		panic("region_alloc: BAD MEMORY RANGE");
 	}
 	for (curr_addr=start_addr; curr_addr<end_addr; curr_addr+=PGSIZE){
-		newPage = page_alloc(NULL);
+		newPage = page_alloc(0);
 		if (newPage==NULL){
 			panic("region_alloc: NO FREE MEMORY");
 		}
-		if (page_insert(e->env_pgdir, newPage, curr_addr, PTE_U | PTE_W)==-E_NO_MEM){
+		if (page_insert(e->env_pgdir, newPage, (void*)curr_addr, PTE_U | PTE_W)==-E_NO_MEM){
 			panic("region_alloc: NO FREE MEMORY");
 		}
 	}
@@ -358,7 +358,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	uint32_t curr_cr3;
 
 	curr_cr3=rcr3();
-	lcr3(e->env_pgdir);
+	lcr3((uint32_t)e->env_pgdir);
 
 
 	if (e==NULL){
@@ -371,7 +371,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	elf_endphdr = elf_phdr + elf_hdr->e_phnum;
 	for (; elf_phdr < elf_endphdr; elf_phdr++){
 		if (elf_phdr->p_type==ELF_PROG_LOAD){
-			region_alloc(e, elf_phdr->p_va, elf_phdr->p_memsz);
+			region_alloc(e, (void*)elf_phdr->p_va, elf_phdr->p_memsz);
 			memcpy((void*)elf_phdr->p_va, (void*)binary+elf_phdr->p_offset, elf_phdr->p_filesz);
 			memset((void*)(elf_phdr->p_va+elf_phdr->p_filesz), 0, elf_phdr->p_memsz-elf_phdr->p_filesz);
 		}
@@ -385,7 +385,7 @@ load_icode(struct Env *e, uint8_t *binary)
 
 	// LAB 3: Your code here.
 	
-	region_alloc(e, (void*)USTACKTOP-PGSIZE, PGSIZE);
+	region_alloc(e, (void*)(USTACKTOP-PGSIZE), PGSIZE);
 
 	lcr3(curr_cr3);
 	
