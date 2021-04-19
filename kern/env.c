@@ -189,8 +189,8 @@ env_setup_vm(struct Env *e)
 	p->pp_ref++;
 	e->env_pgdir=(pde_t*)page2kva(p);
 
-	for (int i=PDX(UTOP); i<NPDENTRIES; i++){
-		memcpy(e->env_pgdir[i], kern_pgdir[i], PGSIZE/NPDENTRIES);
+	for (i=PDX(UTOP); i<NPDENTRIES; i++){
+		memcpy((void*)e->env_pgdir[i], (void*)kern_pgdir[i], PGSIZE/NPDENTRIES);
 	}
 
 	// UVPT maps the env's own page table read-only.
@@ -280,6 +280,23 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+	struct PageInfo *newPage;
+	uintptr_t start_addr = (uintptr_t)ROUNDDOWN((unsigned int)va, PGSIZE);
+	uintptr_t end_addr = (uintptr_t)ROUNDUP((unsigned int)va + len, PGSIZE);
+	uintptr_t curr_addr;
+	int total_pages = ((unsigned int)end_addr-(unsigned int)start_addr)/PGSIZE;
+	if ((total_pages>npages) || total_pages<0 || end_addr>UTOP){
+		panic("region_alloc: BAD MEMORY RANGE");
+	}
+	for (curr_addr=start_addr; curr_addr<end_addr; curr_addr+=PGSIZE){
+		newPage = page_alloc(NULL);
+		if (newPage==NULL){
+			panic("region_alloc: NO FREE MEMORY");
+		}
+		if (page_insert(e->env_pgdir, newPage, curr_addr, PTE_U | PTE_W)==-E_NO_MEM){
+			panic("region_alloc: NO FREE MEMORY");
+		}
+	}
 }
 
 //
@@ -336,21 +353,42 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
+	struct Elf *elf_hdr = (struct Elf*)binary;
+	struct Proghdr *elf_phdr, *elf_endphdr;
+	uint32_t curr_cr3;
+
+	curr_cr3=rcr3();
+	lcr3(e->env_pgdir);
+
+
 	if (e==NULL){
 		panic("load_icode: BAD ARGUMENTS");
 	}
+	if (elf_hdr->e_magic!=ELF_MAGIC){
+		panic("load_icode: INVALID BINARY FILE");
+	}
+	elf_phdr = (struct Proghdr *) (binary + elf_hdr->e_phoff);
+	elf_endphdr = elf_phdr + elf_hdr->e_phnum;
+	for (; elf_phdr < elf_endphdr; elf_phdr++){
+		if (elf_phdr->p_type==ELF_PROG_LOAD){
+			region_alloc(e, elf_phdr->p_va, elf_phdr->p_memsz);
+			memcpy((void*)elf_phdr->p_va, (void*)binary+elf_phdr->p_offset, elf_phdr->p_filesz);
+			memset((void*)(elf_phdr->p_va+elf_phdr->p_filesz), 0, elf_phdr->p_memsz-elf_phdr->p_filesz);
+		}
+	}
+
+	e->env_tf.tf_eip=elf_hdr->e_entry;
+
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
-	struct PageInfo *newPage = page_alloc(ALLOC_ZERO);
-	if (newPage==NULL){
-		panic("load_icode: NO FREE MEMORY");
-	}
-	if (page_insert(e->env_pgdir, newPage, USTACKTOP-PGSIZE, PTE_P | PTE_U | PTE_W)==-E_NO_MEM){
-		panic("load_icode: NO FREE MEMORY");
-	}
+	
+	region_alloc(e, (void*)USTACKTOP-PGSIZE, PGSIZE);
+
+	lcr3(curr_cr3);
+	
 }
 
 //
@@ -364,6 +402,13 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
+	struct Env *newEnv;
+	int r=0;
+	r=env_alloc(&newEnv, (envid_t)0);
+	if (r<0){
+		panic("env_create: %e", r);
+	}
+	load_icode(newEnv, binary);
 }
 
 //
@@ -479,7 +524,16 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
+	if (e!=curenv && curenv!=NULL){
+		if (curenv->env_status==ENV_RUNNING){
+			curenv->env_status=ENV_RUNNABLE;
+		}
+	}
+	curenv=e;
+	curenv->env_status=ENV_RUNNING;
+	curenv->env_runs++;
+	lcr3((uint32_t)curenv->env_pgdir);
 
-	panic("env_run not yet implemented");
+	env_pop_tf(&curenv->env_tf);
 }
 
