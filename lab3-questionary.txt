@@ -43,6 +43,9 @@ TODO: verify that by setting dpl as 3, the softint test fails
 ===   instruction to invoke the kernel's page fault handler (which is
 ===   interrupt vector 14)?
 ===   (free form, 1 sentence)
+INT doesn't store an error code on the kernel stack, or sets CR2 register,
+which the page fault handlers expects to include informations about the fault,
+so the handler will handle a page fault based on arbitrary values.
 
 === Q The break point test case will either generate a break point
 ===   exception or a general protection fault depending on how you
