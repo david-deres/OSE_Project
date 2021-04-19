@@ -20,7 +20,8 @@ yes
 ===   were delivered to the same handler, what feature that exists in
 ===   the current implementation could not be provided?)
 ===   (free form, 1 sentence)
-
+provide the ability to distinguish between interrupts with error codes
+to ones where an error code is not pushed onto the stack.
 === Q Did you have to do anything to make the user/softint program
 ===   behave correctly?
 ===   (yes/no)
