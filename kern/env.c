@@ -358,7 +358,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	uint32_t curr_cr3;
 
 	curr_cr3=rcr3();
-	lcr3((uint32_t)e->env_pgdir);
+	lcr3((uint32_t)PADDR(e->env_pgdir));
 
 
 	if (e==NULL){
@@ -532,7 +532,7 @@ env_run(struct Env *e)
 	curenv=e;
 	curenv->env_status=ENV_RUNNING;
 	curenv->env_runs++;
-	lcr3((uint32_t)curenv->env_pgdir);
+	lcr3((uint32_t)PADDR(curenv->env_pgdir));
 
 	env_pop_tf(&curenv->env_tf);
 }
