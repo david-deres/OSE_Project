@@ -15,6 +15,7 @@
 === Q In Exercise 4, can the function 'trap' ever return?
 ===   (yes/no)
 yes
+
 === Q What is the purpose of having an individual handler function for
 ===   each exception/interrupt? (i.e., if all exceptions/interrupts
 ===   were delivered to the same handler, what feature that exists in
@@ -22,6 +23,7 @@ yes
 ===   (free form, 1 sentence)
 provide the ability to distinguish between interrupts with error codes
 to ones where an error code is not pushed onto the stack.
+
 === Q Did you have to do anything to make the user/softint program
 ===   behave correctly?
 ===   (yes/no)
