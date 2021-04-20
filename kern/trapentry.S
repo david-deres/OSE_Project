@@ -30,10 +30,10 @@
     jmp _alltraps;                                              \
     .data;                                                      \
     .long name;                                                 \
-    .long num;                                                  \
-    .long istrap;                                               \
-    .long sel;                                                  \
-    .long dpl
+    .byte num;                                                  \
+    .byte istrap;                                               \
+    .byte sel;                                                  \
+    .byte dpl
 
 /* Use TRAPHANDLER_NOEC for traps where the CPU doesn't push an error code.
  * It pushes a 0 in place of the error code, so the trap frame has the same
@@ -50,10 +50,10 @@
 	jmp _alltraps;                                              \
     .data;                                                      \
     .long name;                                                 \
-    .long num;                                                  \
-    .long istrap;                                               \
-    .long sel;                                                  \
-    .long dpl
+    .byte num;                                                  \
+    .byte istrap;                                               \
+    .byte sel;                                                  \
+    .byte dpl
 
 /*
  * Lab 3: Your code here for generating entry points for the different traps.

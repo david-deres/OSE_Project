@@ -60,10 +60,10 @@ static const char *trapname(int trapno)
 
 struct InterruptInfoEntry {
   void *func;
-  int num;
-  int istrap;
-  int sel;
-  int dpl;
+  unsigned char num;
+  unsigned char istrap;
+  unsigned char sel;
+  unsigned char dpl;
 };
 
 void
