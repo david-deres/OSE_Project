@@ -76,10 +76,11 @@ and can then be handled appropriately by the kernel.
 ====================================================================
 === Q What challenge(s) have you chosen to implement? (specify
 ===   challenge numbers separated by spaces, if more than one)
-
+1
 === Q If the challenge requires changing the kernel source, list the
 ===   files which you have changed/added during implementation.
 ===   (one file per line, relative to lab directory containing .git/)
-
+kern/trap.c
+kern/trapentry.S
 === Q Describe you solution.
 ===   (free form, up to 500 words, don't need to use all 500!)
