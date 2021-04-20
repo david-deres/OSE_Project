@@ -84,3 +84,22 @@ kern/trap.c
 kern/trapentry.S
 === Q Describe you solution.
 ===   (free form, up to 500 words, don't need to use all 500!)
+to reduce the redundancy between kern/trapentry.S and kern/trap.c,
+when populating the IDT,
+the macros TRAPHANDLER_NOEC and TRAPHANDLER were extended,
+so that for each interrupt,
+the information needed for building the IDT at runtime
+is stored in the data section.
+namely the address and code segment selector of the interrupt handler,
+the number of the interrupt, whether its a trap, and its DPL.
+
+since the declarations are consecutive in the code,
+the values are consecutive in memory.
+thus to access the data for each interrupt,
+it is sufficient to store the address at the begining,
+and at the end of all the interrupt,
+since iteration can then be done by comparing the current pointer to the end.
+
+that way the code in kern/trap.c can iterate over the entries,
+and set the gate for each interrupt in the IDT,
+using SETGATE and the aforementioned information, without duplicating it.
