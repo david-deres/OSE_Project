@@ -37,8 +37,6 @@ INT requires that CPL<=DPL before executing an interrupt,
 but softint is run in user mode where CPL==3, despite DPL==0 for trap 14,
 so the proccessor produces trap 13 in response to illigal INT execution.
 
-TODO: verify that by setting dpl as 3, the softint test fails
-
 === Q What happens if the kernel actually allows softint's int $14
 ===   instruction to invoke the kernel's page fault handler (which is
 ===   interrupt vector 14)?
@@ -62,8 +60,6 @@ which sets the DPL for that interrupt, must be 3,
 which is the CPL of the test since it is executed in user mode.
 otherwise, proccessor produces a general protection fault,
 in response to illigal INT execution.
-
-TODO: verify that without DPL==3 the breakpoint test fails
 
 === Q What do you think is the point of these mechanisms, particularly
 ===   in light of what the user/softint test program does? 
