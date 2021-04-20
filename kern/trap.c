@@ -58,50 +58,28 @@ static const char *trapname(int trapno)
 	return "(unknown trap)";
 }
 
-void div_error_h();
-void debug_h();
-void nmi_h();
-void breakpoint_h();
-void overflow_h();
-void bounds_check_h();
-void illegal_op_h();
-void device_not_avail_h();
-void double_fault_h();
-void invalid_tss_h();
-void seg_not_present_h();
-void stack_exc_h();
-void general_protection_fault_h();
-void page_fault_h();
-void fp_error_h();
-void alignment_h();
-void machine_check_h();
-void simd_h();
+struct InterruptInfoEntry {
+  void *func;
+  int num;
+  int istrap;
+  int sel;
+  int dpl;
+};
 
 void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
 	// LAB 3: Your code here.
-	SETGATE(idt[T_DIVIDE], 1, GD_KT, div_error_h, 0);
-	SETGATE(idt[T_DEBUG], 1, GD_KT, debug_h, 0);
-	SETGATE(idt[T_NMI], 0, GD_KT, nmi_h, 0);
-	SETGATE(idt[T_BRKPT], 1, GD_KT, breakpoint_h, 3);
-	SETGATE(idt[T_OFLOW], 1, GD_KT, overflow_h, 0);
-	SETGATE(idt[T_BOUND], 1, GD_KT,  bounds_check_h, 0);
-	SETGATE(idt[T_ILLOP], 1, GD_KT, illegal_op_h, 0);
-	SETGATE(idt[T_DEVICE], 1, GD_KT, device_not_avail_h, 0);
-	SETGATE(idt[T_DBLFLT], 1, GD_KT, double_fault_h, 0);
-	SETGATE(idt[T_TSS], 1, GD_KT, invalid_tss_h, 0);
-	SETGATE(idt[T_SEGNP], 1, GD_KT, seg_not_present_h, 0);
-	SETGATE(idt[T_STACK], 1, GD_KT, stack_exc_h, 0);
-	SETGATE(idt[T_GPFLT], 1, GD_KT, general_protection_fault_h, 0);
-	SETGATE(idt[T_PGFLT], 1, GD_KT, page_fault_h, 0);
-	SETGATE(idt[T_FPERR], 1, GD_KT, fp_error_h, 0);
-	SETGATE(idt[T_ALIGN], 1, GD_KT, alignment_h, 0);
-	SETGATE(idt[T_MCHK], 1, GD_KT, machine_check_h, 0);
-	SETGATE(idt[T_SIMDERR], 1, GD_KT, simd_h, 0);
+    extern struct InterruptInfoEntry interrupt_info[];
+    extern struct InterruptInfoEntry *interrupt_info_end;
+    struct InterruptInfoEntry *entry;
+    for (entry = interrupt_info; entry != interrupt_info_end; entry++) {
+      SETGATE(idt[entry->num], entry->istrap, entry->sel, entry->func,
+              entry->dpl);
+    }
 
-	// Per-CPU setup 
+    // Per-CPU setup
 	trap_init_percpu();
 }
 
