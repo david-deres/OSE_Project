@@ -72,6 +72,9 @@ and can then be handled appropriately by the kernel.
 === Q In Exercise 9, what causes the page fault which panics the
 ===   kernel when running user/breakpoint?
 ===   (free form, 1 sentence)
+the backtrace unconditionally prints 5 words from the previous stackframe,
+while the first stackframe contains only 2,
+so function read outside the memory allocated for the stack.
 
 ====================================================================
 === Q What challenge(s) have you chosen to implement? (specify
