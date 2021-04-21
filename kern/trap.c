@@ -160,6 +160,8 @@ trap_dispatch(struct Trapframe *tf)
         case T_PGFLT:
             page_fault_handler(tf);
             break;
+        case T_BRKPT:
+            monitor(tf);
         default:
             ; // fallthrough on unexpected trap
     }
