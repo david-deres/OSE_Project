@@ -158,11 +158,9 @@ trap_dispatch(struct Trapframe *tf)
 	// LAB 3: Your code here.
     switch (tf->tf_trapno) {
         case T_PGFLT:
-            page_fault_handler(tf);
-            break;
+            return page_fault_handler(tf);
         case T_BRKPT:
-            monitor(tf);
-            break;
+            return monitor(tf);
         case T_SYSCALL:
             tf->tf_regs.reg_eax =
                 syscall(tf->tf_regs.reg_eax,
@@ -171,7 +169,7 @@ trap_dispatch(struct Trapframe *tf)
                         tf->tf_regs.reg_ebx,
                         tf->tf_regs.reg_edi,
                         tf->tf_regs.reg_esi);
-            break;
+            return;
         default:
             ; // fallthrough on unexpected trap
     }
