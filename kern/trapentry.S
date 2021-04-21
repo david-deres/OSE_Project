@@ -81,6 +81,7 @@ TRAPHANDLER_NOEC(   fp_error_h,                 T_FPERR,    1, GD_KT, 0)
 TRAPHANDLER_NOEC(   alignment_h,                T_ALIGN,    1, GD_KT, 0)
 TRAPHANDLER_NOEC(   machine_check_h,            T_MCHK,     1, GD_KT, 0)
 TRAPHANDLER_NOEC(   simd_h,                     T_SIMDERR,  1, GD_KT, 0)
+TRAPHANDLER_NOEC(   syscall_h,                  T_SYSCALL,  1, GD_KT, 3)
 interrupt_info_end: .long interrupt_info_end
 
 
