@@ -286,15 +286,15 @@ region_alloc(struct Env *e, void *va, size_t len)
 	uintptr_t curr_addr;
 	int total_pages = ((unsigned int)end_addr-(unsigned int)start_addr)/PGSIZE;
 	if ((total_pages>npages) || total_pages<0 || end_addr>UTOP){
-		panic("region_alloc: BAD MEMORY RANGE");
+		panic("region_alloc: %e", -E_INVAL);
 	}
 	for (curr_addr=start_addr; curr_addr<end_addr; curr_addr+=PGSIZE){
 		newPage = page_alloc(0);
 		if (newPage==NULL){
-			panic("region_alloc: NO FREE MEMORY");
+			panic("region_alloc: %e", -E_NO_MEM);
 		}
 		if (page_insert(e->env_pgdir, newPage, (void*)curr_addr, PTE_U | PTE_W)==-E_NO_MEM){
-			panic("region_alloc: NO FREE MEMORY");
+			panic("region_alloc: %e", -E_NO_MEM);
 		}
 	}
 }
@@ -362,10 +362,10 @@ load_icode(struct Env *e, uint8_t *binary)
 
 
 	if (e==NULL){
-		panic("load_icode: BAD ARGUMENTS");
+		panic("load_icode: %e", -E_INVAL);
 	}
 	if (elf_hdr->e_magic!=ELF_MAGIC){
-		panic("load_icode: INVALID BINARY FILE");
+		panic("load_icode: %e", -E_INVAL);
 	}
 	elf_phdr = (struct Proghdr *) (binary + elf_hdr->e_phoff);
 	elf_endphdr = elf_phdr + elf_hdr->e_phnum;
