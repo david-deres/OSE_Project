@@ -14,7 +14,7 @@
 
 === Q In Exercise 4, can the function 'trap' ever return?
 ===   (yes/no)
-yes
+no
 
 === Q What is the purpose of having an individual handler function for
 ===   each exception/interrupt? (i.e., if all exceptions/interrupts
