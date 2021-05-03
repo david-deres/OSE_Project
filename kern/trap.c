@@ -299,8 +299,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 3: Your code here.
     if ((tf->tf_cs & 3) == 0) {
-        panic("[%08x] kernel fault va %08x ip %08x\n",
-		    curenv->env_id, fault_va, tf->tf_eip);
+        panic("kernel fault va %08x ip %08x\n", fault_va, tf->tf_eip);
     }
 
 	// We've already handled kernel-mode exceptions, so if we get here,
