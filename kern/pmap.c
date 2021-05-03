@@ -321,6 +321,9 @@ page_init(void)
 		if (addr == 0) {
 			pages[i].pp_ref = 1;
 			pages[i].pp_link = NULL;
+		} else if (addr ==  MPENTRY_PADDR) {
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
 		} else if (addr >= PGSIZE && addr < npages_basemem * PGSIZE) {
 			pages[i].pp_ref = 0;
 			pages[i].pp_link = page_free_list;
