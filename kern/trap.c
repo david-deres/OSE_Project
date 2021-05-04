@@ -337,10 +337,47 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 4: Your code here.
 
-	// Destroy the environment that caused the fault.
-	cprintf("[%08x] user fault va %08x ip %08x\n",
-		curenv->env_id, fault_va, tf->tf_eip);
-	print_trapframe(tf);
-	env_destroy(curenv);
+    if (curenv->env_pgfault_upcall == NULL) {
+        // Destroy the environment that caused the fault.
+        cprintf("[%08x] user fault va %08x ip %08x\n",
+            curenv->env_id, fault_va, tf->tf_eip);
+        print_trapframe(tf);
+        env_destroy(curenv);
+    }
+
+    // choose the stack based on whether the fault happened in the fault handler
+    uintptr_t exception_stack = tf->tf_esp < UXSTACKTOP
+                                && tf->tf_esp >= (UXSTACKTOP - PGSIZE) ?
+                                tf->tf_esp : UXSTACKTOP;
+
+    // ensures the exception stack has atleast enough space
+    // for an empty word and the trapframe
+    size_t required_space = sizeof(uint32_t) + sizeof(struct UTrapframe);
+    size_t stack_size = MAX(exception_stack-(UXSTACKTOP-PGSIZE), required_space);
+
+    // checks the env has write access to the exception stack
+    // meaning a page is mapped there and is writeable
+    user_mem_assert(curenv, (void *)exception_stack, stack_size, PTE_W);
+
+    // checks the stack doesnt overflow.
+    // since the pages below the stack can be mapped to, the above check isn't enough
+    if (exception_stack - required_space < UXSTACKTOP - PGSIZE) {
+        cprintf("[%08x] user page fault handler overflow\n", curenv->env_id);
+        env_destroy(curenv);
+    }
+
+    // push the trapframe onto the exception stack
+    struct UTrapframe *trap_frame = (void *)(exception_stack - required_space);
+    trap_frame->utf_eflags = tf->tf_eflags;
+    trap_frame->utf_eip = tf->tf_eip;
+    trap_frame->utf_err = tf->tf_err;
+    trap_frame->utf_esp = tf->tf_esp;
+    trap_frame->utf_regs = tf->tf_regs;
+    trap_frame->utf_fault_va = fault_va;
+
+    // prepare env trapframe for running the handler
+    tf->tf_esp = exception_stack - required_space;
+    tf->tf_eip = (uintptr_t)curenv->env_pgfault_upcall;
+    env_run(curenv);
 }
 
