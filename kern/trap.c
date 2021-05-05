@@ -346,14 +346,18 @@ page_fault_handler(struct Trapframe *tf)
     }
 
     // choose the stack based on whether the fault happened in the fault handler
+    //
+    // without allowing exception_stack to be tf->tf_esp
+    // when it is below the exception stack, overflow checks cant be made
     uintptr_t exception_stack = tf->tf_esp < UXSTACKTOP
-                                && tf->tf_esp >= (UXSTACKTOP - PGSIZE) ?
+                                && tf->tf_esp >= (UXSTACKTOP - 2*PGSIZE) ?
                                 tf->tf_esp : UXSTACKTOP;
 
     // ensures the exception stack has atleast enough space
     // for an empty word and the trapframe
-    size_t required_space = sizeof(uint32_t) + sizeof(struct UTrapframe);
-    size_t stack_size = MAX(exception_stack-(UXSTACKTOP-PGSIZE), required_space);
+    int32_t required_space = sizeof(uint32_t) + sizeof(struct UTrapframe);
+    // do a signed comparison to ensure stack_size is positive
+    size_t stack_size = MAX( (int32_t)(exception_stack-(UXSTACKTOP-PGSIZE)), required_space);
 
     // checks the env has write access to the exception stack
     // meaning a page is mapped there and is writeable
