@@ -357,7 +357,7 @@ page_fault_handler(struct Trapframe *tf)
 
     // checks the env has write access to the exception stack
     // meaning a page is mapped there and is writeable
-    user_mem_assert(curenv, (void *)exception_stack - stack_size, stack_size, PTE_W);
+    user_mem_assert(curenv, (void *)(exception_stack - stack_size), stack_size, PTE_W);
 
     // checks the stack doesnt overflow.
     // since the pages below the stack can be mapped to, the above check isn't enough
