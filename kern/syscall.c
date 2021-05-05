@@ -28,7 +28,7 @@ static bool is_valid_user_addr(void *va_ptr) {
 // returns true if the given permission
 // can be applied to a page in user mode
 static bool is_valid_perm(int perm) {
-    if ((perm & (PTE_U | PTE_P)) != (PTE_U | PTE_P)) {
+    if ((perm | PTE_U | PTE_P) != perm) {
         return false;
     }
     if ((perm & PTE_SYSCALL) != perm) {
