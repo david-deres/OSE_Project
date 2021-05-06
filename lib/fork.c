@@ -103,7 +103,6 @@ duppage(envid_t envid, unsigned pn)
     r = sys_page_map(thisenv->env_id, (void*)(pn*PGSIZE),
                     thisenv->env_id, (void*)(pn*PGSIZE), perm);
     if (r<0) {
-        panic("1 page: %d error %e", pn, r);
         return r;
     }
 
@@ -186,7 +185,6 @@ fork(void)
             r = duppage(child_envid, page_num);
             if (r<0) {
                 sys_env_destroy(child_envid);
-                panic("3 %e", r);
                 return r;
             }
         }
