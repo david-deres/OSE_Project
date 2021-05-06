@@ -59,9 +59,13 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
     }
     int r = -E_IPC_NOT_RECV;
 
-    while (r == -E_IPC_NOT_RECV) {
+    while (1) {
         r = sys_ipc_try_send(to_env, val, pg, perm);
-        sys_yield();
+        if (r == -E_IPC_NOT_RECV) {
+            sys_yield();
+        } else {
+            break;
+        }
     }
     if (r < 0) {
         panic("failed to send message: %e\n", r);
