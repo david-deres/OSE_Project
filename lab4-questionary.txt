@@ -56,10 +56,44 @@
 ====================================================================
 === Q What challenge(s) have you chosen to implement? (specify
 ===   challenge numbers separated by spaces, if more than one)
-
+6
 === Q If the challenge requires changing the kernel source, list the
 ===   files which you have changed/added during implementation.
 ===   (one file per line, relative to lab directory containing .git/)
-
+inc/lib.h
+lib/fork.c
+lib/ipc.c
+lib/pgfault.c
+user/forktree.c
 === Q Describe you solution.
 ===   (free form, up to 500 words, don't need to use all 500!)
+in order to implement sfork, sys_exofork was used to create a environment
+which is then prepared in the parent env,
+before changing its status to ENV_RUNNABLE so it can be executed.
+
+since both parent and child envs must share almost all of their memory,
+the function iterates over all of the parent env's pages,
+and maps them onto the child at the same location.
+
+the exceptions to that are the user stack and user exception stack.
+
+the user stack page is mapped as COW similarly to fork.
+to allow for that behavior, the same page fault handler defined for fork,
+is set for both envs, since it handles COW pages.
+
+to prevent a data-race where both the parent and child trigger a page fault,
+and start reading and writing to the same user exception stack,
+a new page is allocated for the child's user exception stack.
+
+since both the parent and child share their memory,
+including the thisenv global, it can no longer be unique to either env.
+so instead, the macro curenv is defined,
+which makes a syscall to find the env's id,
+and uses that to get the correct pointer for the env using it.
+
+this macro is used to replace thisenv in the library code,
+so that its functionality, namely IPC sending and page fault handler setting,
+functions correctly if by an env created by sfork.
+
+additionally forktree was modified to use sfork instead of fork,
+as per the conditions of the challenge.
