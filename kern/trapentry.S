@@ -21,7 +21,7 @@
  *   void NAME();
  * where NAME is the argument passed to TRAPHANDLER.
  */
-#define TRAPHANDLER(name, num, istrap, sel, dpl)                \
+#define TRAPHANDLER(name, num, dpl)                             \
     .text;                                                      \
     .globl name;    /* define global symbol for 'name' */       \
 	.type name, @function;  /* symbol type is function */       \
@@ -32,15 +32,18 @@
     .data;                                                      \
     .long name;                                                 \
     .byte num;                                                  \
-    .byte istrap;                                               \
-    .byte sel;                                                  \
+    /* interrupts are always masked inside the kernel           \
+     * and are always handled by the kernel                     \
+     */                                                         \
+    .byte 0;                                                    \
+    .byte GD_KT;                                                \
     .byte dpl
 
 /* Use TRAPHANDLER_NOEC for traps where the CPU doesn't push an error code.
  * It pushes a 0 in place of the error code, so the trap frame has the same
  * format in either case.
  */
-#define TRAPHANDLER_NOEC(name, num, istrap, sel, dpl)           \
+#define TRAPHANDLER_NOEC(name, num, dpl)                        \
     .text;                                                      \
     .globl name;                                                \
     .type name, @function;                                      \
@@ -52,8 +55,8 @@
     .data;                                                      \
     .long name;                                                 \
     .byte num;                                                  \
-    .byte istrap;                                               \
-    .byte sel;                                                  \
+    .byte 0;                                                    \
+    .byte GD_KT;                                                \
     .byte dpl
 
 /*
@@ -64,25 +67,40 @@
 .global interrupt_info
 .global interrupt_info_end
 interrupt_info:
-TRAPHANDLER_NOEC(   div_error_h,                T_DIVIDE,   1, GD_KT, 0)
-TRAPHANDLER_NOEC(   debug_h,                    T_DEBUG,    1, GD_KT, 0)
-TRAPHANDLER_NOEC(   nmi_h,                      T_NMI,      0, GD_KT, 0)
-TRAPHANDLER_NOEC(   breakpoint_h,               T_BRKPT,    1, GD_KT, 3)
-TRAPHANDLER_NOEC(   overflow_h,                 T_OFLOW,    1, GD_KT, 0)
-TRAPHANDLER_NOEC(   bounds_check_h,             T_BOUND,    1, GD_KT, 0)
-TRAPHANDLER_NOEC(   illegal_op_h,               T_ILLOP,    1, GD_KT, 0)
-TRAPHANDLER_NOEC(   device_not_avail_h,         T_DEVICE,   1, GD_KT, 0)
-TRAPHANDLER(        double_fault_h,             T_DBLFLT,   1, GD_KT, 0)
-TRAPHANDLER(        invalid_tss_h,              T_TSS,      1, GD_KT, 0)
-TRAPHANDLER(        seg_not_present_h,          T_SEGNP,    1, GD_KT, 0)
-TRAPHANDLER(        stack_exc_h,                T_STACK,    1, GD_KT, 0)
-TRAPHANDLER(        general_protection_fault_h, T_GPFLT,    1, GD_KT, 0)
-TRAPHANDLER(        page_fault_h,               T_PGFLT,    1, GD_KT, 0)
-TRAPHANDLER_NOEC(   fp_error_h,                 T_FPERR,    1, GD_KT, 0)
-TRAPHANDLER_NOEC(   alignment_h,                T_ALIGN,    1, GD_KT, 0)
-TRAPHANDLER_NOEC(   machine_check_h,            T_MCHK,     1, GD_KT, 0)
-TRAPHANDLER_NOEC(   simd_h,                     T_SIMDERR,  1, GD_KT, 0)
-TRAPHANDLER_NOEC(   syscall_h,                  T_SYSCALL,  1, GD_KT, 3)
+TRAPHANDLER_NOEC(   div_error_h,                T_DIVIDE,      0)
+TRAPHANDLER_NOEC(   debug_h,                    T_DEBUG,       0)
+TRAPHANDLER_NOEC(   nmi_h,                      T_NMI,         0)
+TRAPHANDLER_NOEC(   breakpoint_h,               T_BRKPT,       3)
+TRAPHANDLER_NOEC(   overflow_h,                 T_OFLOW,       0)
+TRAPHANDLER_NOEC(   bounds_check_h,             T_BOUND,       0)
+TRAPHANDLER_NOEC(   illegal_op_h,               T_ILLOP,       0)
+TRAPHANDLER_NOEC(   device_not_avail_h,         T_DEVICE,      0)
+TRAPHANDLER(        double_fault_h,             T_DBLFLT,      0)
+TRAPHANDLER(        invalid_tss_h,              T_TSS,         0)
+TRAPHANDLER(        seg_not_present_h,          T_SEGNP,       0)
+TRAPHANDLER(        stack_exc_h,                T_STACK,       0)
+TRAPHANDLER(        general_protection_fault_h, T_GPFLT,       0)
+TRAPHANDLER(        page_fault_h,               T_PGFLT,       0)
+TRAPHANDLER_NOEC(   fp_error_h,                 T_FPERR,       0)
+TRAPHANDLER_NOEC(   alignment_h,                T_ALIGN,       0)
+TRAPHANDLER_NOEC(   machine_check_h,            T_MCHK,        0)
+TRAPHANDLER_NOEC(   simd_h,                     T_SIMDERR,     0)
+TRAPHANDLER_NOEC(   syscall_h,                  T_SYSCALL,     3)
+TRAPHANDLER_NOEC(   irq0_h,                     IRQ_OFFSET+0,  0)
+TRAPHANDLER_NOEC(   irq1_h,                     IRQ_OFFSET+1,  0)
+TRAPHANDLER_NOEC(   irq2_h,                     IRQ_OFFSET+2,  0)
+TRAPHANDLER_NOEC(   irq3_h,                     IRQ_OFFSET+3,  0)
+TRAPHANDLER_NOEC(   irq4_h,                     IRQ_OFFSET+4,  0)
+TRAPHANDLER_NOEC(   irq5_h,                     IRQ_OFFSET+5,  0)
+TRAPHANDLER_NOEC(   irq6_h,                     IRQ_OFFSET+6,  0)
+TRAPHANDLER_NOEC(   irq7_h,                     IRQ_OFFSET+7,  0)
+TRAPHANDLER_NOEC(   irq8_h,                     IRQ_OFFSET+8,  0)
+TRAPHANDLER_NOEC(   irq9_h,                     IRQ_OFFSET+9,  0)
+TRAPHANDLER_NOEC(   irq10_h,                    IRQ_OFFSET+10, 0)
+TRAPHANDLER_NOEC(   irq11_h,                    IRQ_OFFSET+11, 0)
+TRAPHANDLER_NOEC(   irq12_h,                    IRQ_OFFSET+12, 0)
+TRAPHANDLER_NOEC(   irq13_h,                    IRQ_OFFSET+13, 0)
+TRAPHANDLER_NOEC(   irq14_h,                    IRQ_OFFSET+14, 0)
 interrupt_info_end: .long interrupt_info_end
 
 
