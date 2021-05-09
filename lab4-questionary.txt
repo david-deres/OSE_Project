@@ -53,6 +53,8 @@ and also wrong execution of the interrupt.
 ===   can be restored properly later. Where does this happen?
 ===   (JOS function name)
 
+trap
+
 === Q In your implementation of env_run() you should have called
 ===   lcr3(). Before and after the call to lcr3(), your code makes
 ===   references (at least it should) to the variable e, the argument
@@ -64,9 +66,13 @@ and also wrong execution of the interrupt.
 ===   dereferenced both before and after the addressing switch?
 ===   (one sentence, free form)
 
+both user and kernel share the same virtual address for e,
+which reffers to UENVS area.
+
 === Q In Ex. 9, what happens if the user environment runs out of
 ===   space on the exception stack?
 ===   (one setence, free form)
+
 
 === Q In dumpfork.c, the first time you call duppage(), the function
 ===   allocates a page in one environment (env A) and then maps it in
