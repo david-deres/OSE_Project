@@ -25,6 +25,7 @@ physical address.
 this is necessary because of the fact the linker expects the code to run
 above KERNBASE while the code is loaded at low physical address MPENTRY_PADDR
 below KERNBASE by the call: "lapic_startap(c->cpu_id, PADDR(code));" in boot_aps().
+(since it must run from an address in the low 2^16 bytes of physical memory)
 thus, we need a macro to convert the global variables and labels addresses
 supplied by the linker to access them correctly.
 boot.S to the contrary, is both linked and loaded to the same address
@@ -66,15 +67,18 @@ trap
 ===   dereferenced both before and after the addressing switch?
 ===   (one sentence, free form)
 
-both user and kernel share the same virtual address for e,
-which reffers to UENVS area.
+all environments share the same address space above UTOP,
+this includes UENVS which contains the above address.
 
 === Q In Ex. 9, what happens if the user environment runs out of
 ===   space on the exception stack?
 ===   (one setence, free form)
 
-recursive page fault for accessing unmapped memory
+Option 1: recursive page fault for accessing unmapped memory
 which eventually can lead to USTACK overwrite. 
+
+Option 2: recursive page fault which will lead to env_destroy
+since (exception_stack - required_space) >= (UXSTACKTOP - PGSIZE).
 
 === Q In dumpfork.c, the first time you call duppage(), the function
 ===   allocates a page in one environment (env A) and then maps it in
