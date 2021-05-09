@@ -20,6 +20,17 @@
 ===   omitted in kern/mpentry.S?
 ===   (free form)
 
+MPBOOTPHYS converts virtual address above KERNBASE to it's corresponding
+physical address.
+this is necessary because of the fact the linker expects the code to run
+above KERNBASE while the code is loaded at low physical address MPENTRY_PADDR
+below KERNBASE by the call: "lapic_startap(c->cpu_id, PADDR(code));" in boot_aps().
+thus, we need a macro to convert the global variables and labels addresses
+supplied by the linker to access them correctly.
+boot.S to the contrary, is both linked and loaded to the same address
+(0x7C00) as discussed in lab1 so no convertion needed.
+
+
 === Q It seems that using the big kernel lock guarantees that only one
 ===   CPU can run the kernel code at a time. Why do we still need
 ===   separate kernel stacks for each CPU? Describe a scenario in
