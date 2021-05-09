@@ -73,12 +73,16 @@ which reffers to UENVS area.
 ===   space on the exception stack?
 ===   (one setence, free form)
 
+recursive page fault for accessing unmapped memory
+which eventually can lead to USTACK overwrite. 
 
 === Q In dumpfork.c, the first time you call duppage(), the function
 ===   allocates a page in one environment (env A) and then maps it in
 ===   another (env B). At what address is the page mapped in env A, and
 ===   at what address is it mapped in env B?
 ===   (ADDR(in env A):ADDR(in env B) (example: 0xAAAAAAAA:0xBBBBBBBB)
+
+0x00800000:0x00400000
 
 ====================================================================
 === Q What challenge(s) have you chosen to implement? (specify
