@@ -38,6 +38,16 @@ boot.S to the contrary, is both linked and loaded to the same address
 ===   protection of the big kernel lock.
 ===   (free form)
 
+in trapentry.S we push the current CPU's tf to the kernel stack
+before calling trap(), without acquiring the kernel lock beforehand.
+So one possible scenario:
+CPU0 executes syscall, enters trap after pushing tf0, acquires the lock at line 262.
+CPU1 gets div error, enters trap after pushing tf1, tries to acquire the lock and spins.
+CPU0 continues execution and in line 274 updates curenv->env_tf to tf1,
+which leads to running the wrong env in env_pop_tf 
+and also wrong execution of the interrupt.
+
+
 === Q Whenever the kernel switches from one environment to another, it
 ===   must ensure the old environment's registers are saved so they
 ===   can be restored properly later. Where does this happen?
