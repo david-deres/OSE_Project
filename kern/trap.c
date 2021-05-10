@@ -365,13 +365,6 @@ page_fault_handler(struct Trapframe *tf)
     // meaning a page is mapped there and is writeable
     user_mem_assert(curenv, (void *)(exception_stack - required_space), required_space, PTE_W);
 
-    // checks the stack doesnt overflow.
-    // since the pages below the stack can be mapped to, the above check isn't enough
-    if (exception_stack - required_space < UXSTACKTOP - PGSIZE) {
-        cprintf("[%08x] user page fault handler overflow\n", curenv->env_id);
-        env_destroy(curenv);
-    }
-
     // push the trapframe onto the exception stack
     struct UTrapframe *trap_frame = (void *)(exception_stack - required_space);
     trap_frame->utf_eflags = tf->tf_eflags;
