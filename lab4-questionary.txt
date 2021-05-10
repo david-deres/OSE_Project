@@ -24,7 +24,8 @@ MPBOOTPHYS converts virtual address above KERNBASE to it's corresponding
 physical address.
 this is necessary because of the fact the linker expects the code to run
 above KERNBASE while the code is loaded at low physical address MPENTRY_PADDR
-below KERNBASE by the call: "lapic_startap(c->cpu_id, PADDR(code));" in boot_aps().
+below KERNBASE by the call:
+"lapic_startap(c->cpu_id, PADDR(code));" in boot_aps().
 (since it must run from an address in the low 2^16 bytes of physical memory)
 thus, we need a macro to convert the global variables and labels addresses
 supplied by the linker to access them correctly.
@@ -42,8 +43,10 @@ boot.S to the contrary, is both linked and loaded to the same address
 in trapentry.S we push the current CPU's tf to the kernel stack
 before calling trap(), without acquiring the kernel lock beforehand.
 So one possible scenario:
-CPU0 executes syscall, enters trap after pushing tf0, acquires the lock at line 262.
-CPU1 gets div error, enters trap after pushing tf1, tries to acquire the lock and spins.
+CPU0 executes syscall, enters trap after pushing tf0,
+acquires the lock at line 262.
+CPU1 gets div error, enters trap after pushing tf1,
+tries to acquire the lock and spins.
 CPU0 continues execution and in line 274 updates curenv->env_tf to tf1,
 which leads to running the wrong env in env_pop_tf 
 and also wrong execution of the interrupt.
@@ -74,11 +77,11 @@ this includes UENVS which contains the above address.
 ===   space on the exception stack?
 ===   (one setence, free form)
 
-Option 1: recursive page fault for accessing unmapped memory
-which eventually can lead to USTACK overwrite. 
+recursive page fault for accessing unmapped memory
+(guard page between USTACK and UXSTACK)
+which eventually will lead to env destroy by user_mem_assert
+since the guard page isn't mapped. 
 
-Option 2: recursive page fault which will lead to env_destroy
-since (exception_stack - required_space) >= (UXSTACKTOP - PGSIZE).
 
 === Q In dumpfork.c, the first time you call duppage(), the function
 ===   allocates a page in one environment (env A) and then maps it in
