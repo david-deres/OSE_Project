@@ -354,7 +354,7 @@ page_fault_handler(struct Trapframe *tf)
     // without allowing exception_stack to be tf->tf_esp
     // when it is below the exception stack, overflow checks cant be made
     uintptr_t exception_stack = tf->tf_esp < UXSTACKTOP
-                                && tf->tf_esp >= (UXSTACKTOP - 2*PGSIZE) ?
+                                && tf->tf_esp >= USTACKTOP ?
                                 tf->tf_esp : UXSTACKTOP;
 
     // ensures the exception stack has atleast enough space
