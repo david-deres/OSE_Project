@@ -77,11 +77,8 @@ this includes UENVS which contains the above address.
 ===   space on the exception stack?
 ===   (one setence, free form)
 
-recursive page fault for accessing unmapped memory
-(guard page between USTACK and UXSTACK)
-which eventually will lead to env destroy by user_mem_assert
-since the guard page isn't mapped. 
-
+the user environment will be destroyed by user_mem_assert
+since its exception stack will overflow to the unmapped the guard page below.
 
 === Q In dumpfork.c, the first time you call duppage(), the function
 ===   allocates a page in one environment (env A) and then maps it in
