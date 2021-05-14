@@ -65,18 +65,38 @@ _pgfault_upcall:
 	// ways as registers become unavailable as scratch space.
 	//
 	// LAB 4: Your code here.
+    sub $4, 48(%esp)        // add a word to trap-time stack
+                            // so the eip can be used as return address
+
+    mov 48(%esp), %eax      // read the trap-time esp
+
+    mov 40(%esp), %edx      // read the trap-time eip
+
+    mov %edx, (%eax)        // write the trap-time eip to trap-time stack
+
 
 	// Restore the trap-time registers.  After you do this, you
 	// can no longer modify any general-purpose registers.
 	// LAB 4: Your code here.
+    mov 8(%esp), %edi
+    mov 12(%esp), %esi
+    mov 16(%esp), %ebp
+    mov 24(%esp), %ebx
+    mov 28(%esp), %edx
+    mov 32(%esp), %ecx
+    mov 36(%esp), %eax
 
 	// Restore eflags from the stack.  After you do this, you can
 	// no longer use arithmetic operations or anything else that
 	// modifies eflags.
 	// LAB 4: Your code here.
+    add $44, %esp // remove registers after eflags from stack
+    popf
 
 	// Switch back to the adjusted trap-time stack.
 	// LAB 4: Your code here.
+    pop %esp
 
 	// Return to re-execute the instruction that faulted.
 	// LAB 4: Your code here.
+    ret

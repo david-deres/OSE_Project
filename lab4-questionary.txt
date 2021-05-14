@@ -1,0 +1,134 @@
+=== This template file contains questions you need to answer.
+=== Fill your answers on appropriate blank lines only.
+=== Don't start any line with three equal signs "===".
+=== Don't edit any lines starting from three equal signs.
+=== Use C notation to write numbers: 42 for decimal, 0x2a for hexadecimal.
+=== We may check most of the answers automatically, so "forty two" or
+=== "26+16" won't work for this example. Spaces are mostly ignored, so
+=== "  42  " is OK (without quotes of course). 
+=== When asked to specify address & instruction, do it in the form of
+=== gdb output "ADDRESS: INSTRUCTION", for example "0x7c26:  or  $0x1,%eax"
+=== Don't make lines longer than 80 characters. You don't need to fit your
+=== answer in a single line, you can start a new line at will.
+=== However, when asked to fill "a table" make each table raw a singleline.
+
+=== Q Compare kern/mpentry.S side by side with boot/boot.S. Bearing in
+===   mind that kern/mpentry.S is compiled and linked to run above KERNBASE
+===   just like everything else in the kernel, what is the purpose of macro
+===   MPBOOTPHYS? Why is it necessary in kern/mpentry.S but not in
+===   boot/boot.S? In other words, what could go wrong if it were
+===   omitted in kern/mpentry.S?
+===   (free form)
+
+MPBOOTPHYS converts virtual address above KERNBASE to it's corresponding
+physical address.
+this is necessary because of the fact the linker expects the code to run
+above KERNBASE while the code is loaded at low physical address MPENTRY_PADDR
+below KERNBASE by the call:
+"lapic_startap(c->cpu_id, PADDR(code));" in boot_aps().
+(since it must run from an address in the low 2^16 bytes of physical memory)
+thus, we need a macro to convert the global variables and labels addresses
+supplied by the linker to access them correctly.
+boot.S to the contrary, is both linked and loaded to the same address
+(0x7C00) as discussed in lab1 so no convertion needed.
+
+
+=== Q It seems that using the big kernel lock guarantees that only one
+===   CPU can run the kernel code at a time. Why do we still need
+===   separate kernel stacks for each CPU? Describe a scenario in
+===   which using a shared kernel stack will go wrong, even with the
+===   protection of the big kernel lock.
+===   (free form)
+
+in trapentry.S we push the current CPU's tf to the kernel stack
+before calling trap(), without acquiring the kernel lock beforehand.
+So one possible scenario:
+CPU0 executes syscall, enters trap after pushing tf0,
+acquires the lock at line 262.
+CPU1 gets div error, enters trap after pushing tf1,
+tries to acquire the lock and spins.
+CPU0 continues execution and in line 274 updates curenv->env_tf to tf1,
+which leads to running the wrong env in env_pop_tf 
+and also wrong execution of the interrupt.
+
+
+=== Q Whenever the kernel switches from one environment to another, it
+===   must ensure the old environment's registers are saved so they
+===   can be restored properly later. Where does this happen?
+===   (JOS function name)
+
+trap
+
+=== Q In your implementation of env_run() you should have called
+===   lcr3(). Before and after the call to lcr3(), your code makes
+===   references (at least it should) to the variable e, the argument
+===   to env_run. Upon loading the %cr3 register, the addressing
+===   context used by the MMU is instantly changed. But a virtual
+===   address (namely e) has meaning relative to a given address 
+===   context--the address context specifies the physical address to
+===   which the virtual address maps. Why can the pointer e be
+===   dereferenced both before and after the addressing switch?
+===   (one sentence, free form)
+
+all environments share the same address space above UTOP,
+this includes UENVS which contains the above address.
+
+=== Q In Ex. 9, what happens if the user environment runs out of
+===   space on the exception stack?
+===   (one setence, free form)
+
+the user environment will be destroyed by user_mem_assert
+since its exception stack will overflow to the unmapped the guard page below.
+
+=== Q In dumpfork.c, the first time you call duppage(), the function
+===   allocates a page in one environment (env A) and then maps it in
+===   another (env B). At what address is the page mapped in env A, and
+===   at what address is it mapped in env B?
+===   (ADDR(in env A):ADDR(in env B) (example: 0xAAAAAAAA:0xBBBBBBBB)
+
+0x00800000:0x00400000
+
+====================================================================
+=== Q What challenge(s) have you chosen to implement? (specify
+===   challenge numbers separated by spaces, if more than one)
+6
+=== Q If the challenge requires changing the kernel source, list the
+===   files which you have changed/added during implementation.
+===   (one file per line, relative to lab directory containing .git/)
+inc/lib.h
+lib/fork.c
+lib/ipc.c
+lib/pgfault.c
+user/forktree.c
+=== Q Describe you solution.
+===   (free form, up to 500 words, don't need to use all 500!)
+in order to implement sfork, sys_exofork was used to create a environment
+which is then prepared in the parent env,
+before changing its status to ENV_RUNNABLE so it can be executed.
+
+since both parent and child envs must share almost all of their memory,
+the function iterates over all of the parent env's pages,
+and maps them onto the child at the same location.
+
+the exceptions to that are the user stack and user exception stack.
+
+the user stack page is mapped as COW similarly to fork.
+to allow for that behavior, the same page fault handler defined for fork,
+is set for both envs, since it handles COW pages.
+
+to prevent a data-race where both the parent and child trigger a page fault,
+and start reading and writing to the same user exception stack,
+a new page is allocated for the child's user exception stack.
+
+since both the parent and child share their memory,
+including the thisenv global, it can no longer be unique to either env.
+so instead, the macro curenv is defined,
+which makes a syscall to find the env's id,
+and uses that to get the correct pointer for the env using it.
+
+this macro is used to replace thisenv in the library code,
+so that its functionality, namely IPC sending and page fault handler setting,
+functions correctly if by an env created by sfork.
+
+additionally forktree was modified to use sfork instead of fork,
+as per the conditions of the challenge.
