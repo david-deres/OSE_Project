@@ -24,6 +24,13 @@
 ===   privilege setting is saved and restored properly when you
 ===   subsequently switch from one environment to another? Why? 
 ===   (free form)
+no, the IDE registers required are accessed only via x86's I/O space,
+so the I/O privilege for an environment is maintained,
+using only the IOPL bits in the eflags register.
+whenever the kernel switches from one environment to another,
+it saves the existing register state,
+and loads a different one for the other environment,
+so the privilege changes accordingly.
 
 === Q How long approximately did it take you to do this lab?
 ===   (number of hours for all partners combined)
