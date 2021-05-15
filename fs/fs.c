@@ -167,8 +167,10 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 			}
 			// set all entries to 0 to hold the invariant
 			memset(diskaddr(blockno), 0, BLKSIZE);
+			f->f_indirect = blockno;
 	   }
-	   *ppdiskbno = &((uint32_t*)f->f_indirect)[filebno];
+	   uint32_t* inptr = diskaddr(f->f_indirect);
+	   *ppdiskbno = &inptr[filebno];
 	   return 0;
 
 }
