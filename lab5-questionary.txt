@@ -15,10 +15,16 @@
 === Q How much disk space can be addressed by a single bitmap block
 ===   when size of a block is 4KB? (number in _bytes_)
 
+0x08000000
+
 === Q How much disk space can be addressed by a single bitmap block
 ===   when size of a block is 512B? (number in _bytes_)
 
+0x00200000
+
 === Q What is a maximum supported file size in JOS FS? (number in _bytes_)
+
+0x0040A000
 
 === Q Did you have to do anything else to ensure that the I/O
 ===   privilege setting is saved and restored properly when you
