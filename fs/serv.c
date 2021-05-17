@@ -244,8 +244,7 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 	if ((r = openfile_lookup(envid, req->req_fileid, &ofp))<0){
 		return r;
 	}
-	r = file_write(ofp->o_file, req->req_buf,
-		MIN(req->req_n, PGSIZE - (sizeof(int) + sizeof(size_t))), ofp->o_fd->fd_offset);
+	r = file_write(ofp->o_file, req->req_buf, req->req_n, ofp->o_fd->fd_offset);
 	if (r < 0) {
         return r;
     }
