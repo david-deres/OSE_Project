@@ -63,7 +63,6 @@ alloc_block(void)
 
 	// LAB 5: Your code here.
 	uint32_t blockno;
-	//TODO: maybe start from block 3 to overlap the superblock and bitmap first block
 	for (blockno = 0; blockno<=super->s_nblocks; blockno++){
 		if (block_is_free(blockno)){
 			bitmap[blockno / 32] &= ~(1 << (blockno % 32));
@@ -155,10 +154,8 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 		   *ppdiskbno = &(f->f_direct[filebno]);
 		   return 0;
 	   }
-	   // indirect block, decrease filebno for correct accessing f_indirect
-	   filebno -= NDIRECT;
-	   if (!(f->f_indirect)){
-		    if (!alloc){
+	   if (f->f_indirect == 0){
+		    if (alloc == 0){
 				return -E_NOT_FOUND;
 			}
 		   	//allocate new block
@@ -170,7 +167,7 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 			f->f_indirect = blockno;
 	   }
 	   uint32_t* inptr = diskaddr(f->f_indirect);
-	   *ppdiskbno = &inptr[filebno];
+	   *ppdiskbno = &inptr[filebno-NDIRECT];
 	   return 0;
 
 }
@@ -190,6 +187,9 @@ file_get_block(struct File *f, uint32_t filebno, char **blk)
 	   int r;
 	   uint32_t newblock;
 	   uint32_t *diskbno;
+	   if (NULL==f){
+		   panic("file_get_block: null pointer");
+	   }
        if ((r = file_block_walk(f, filebno, &diskbno, true))<0){
 		   return r;
 	   }
