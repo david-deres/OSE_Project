@@ -240,17 +240,17 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 
 	// LAB 5: Your code here.
 	struct OpenFile* ofp;
-	int r;
-	ssize_t nbytes_written=0;
+	ssize_t r = 0;
 	if ((r = openfile_lookup(envid, req->req_fileid, &ofp))<0){
 		return r;
 	}
-	nbytes_written = file_write(ofp->o_file, req->req_buf, 
+	r = file_write(ofp->o_file, req->req_buf,
 		MIN(req->req_n, PGSIZE - (sizeof(int) + sizeof(size_t))), ofp->o_fd->fd_offset);
-	if (nbytes_written>0){
-		ofp->o_fd->fd_offset+=nbytes_written;
-	}
-	return nbytes_written;
+	if (r < 0) {
+        return r;
+    }
+    ofp->o_fd->fd_offset += r;
+	return r;
 }
 
 // Stat ipc->stat.req_fileid.  Return the file's struct Stat to the
