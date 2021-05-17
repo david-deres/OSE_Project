@@ -59,13 +59,16 @@ again:
 			int fd = open(t, O_RDONLY);
 			if (fd < 0){
 				cprintf("%s is not a legal path\n", t);
+                exit();
 			}
 			if (fd != 0){
 				if ((r = dup(fd, 0)) < 0){
 				cprintf("dup error in '<' : %d\n", r);
+                exit();
 				}
 				if ((r = close(fd)) < 0){
 				cprintf("close error in '<' : %d\n", r);
+                exit();
 				}
 			}
 			break;
