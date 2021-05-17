@@ -311,6 +311,10 @@ copy_shared_pages(envid_t child)
              pgtable_index++) {
             void *page_addr = PGADDR(pgdir_index, pgtable_index, 0);
             uint32_t page_num = PGNUM(page_addr);
+            if ((uvpt[page_num] | PTE_P | PTE_U) != uvpt[page_num]) {
+                // skip unmapped pages in each page table
+                continue;
+            }
             if ((uvpt[page_num] & PTE_SHARE) != 0) {
                 if ((r = sys_page_map(curenv->env_id,
                                       (void *)(page_num * PGSIZE), child,
