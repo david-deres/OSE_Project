@@ -41,7 +41,13 @@ extern const volatile struct PageInfo pages[];
 void	exit(void);
 
 // pgfault.c
-void	set_pgfault_handler(void (*handler)(struct UTrapframe *utf));
+
+// a page fault handler function
+// takes the trap frame as input
+// returns true if it handled the fault,
+// and false to pass the fault to the next handler
+typedef bool(*pgfault_handler_t)(struct UTrapframe *);
+void	set_pgfault_handler(pgfault_handler_t handler);
 
 // readline.c
 char*	readline(const char *buf);

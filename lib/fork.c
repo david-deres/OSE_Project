@@ -11,7 +11,7 @@
 // Custom page fault handler - if faulting page is copy-on-write,
 // map in our own private writable copy.
 //
-static void
+static bool
 pgfault(struct UTrapframe *utf)
 {
 	void *addr = (void *) utf->utf_fault_va;
@@ -30,8 +30,7 @@ pgfault(struct UTrapframe *utf)
     if ((err & FEC_WR) != FEC_WR
         // checks if the page exists and if it is COW
         || (old_perms | PTE_COW | PTE_P) != old_perms) {
-        panic("[%08x] user fault va %08x ip %08x\n",
-            curenv->env_id, addr, utf->utf_eip);
+        return false;
     }
 
 	// Allocate a new page, map it at a temporary location (PFTEMP),
@@ -61,6 +60,8 @@ pgfault(struct UTrapframe *utf)
     if (r < 0) {
         panic("unable to unmap temp copy of COW page: %e", r);
     }
+
+    return true;
 }
 
 //

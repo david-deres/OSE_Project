@@ -26,7 +26,7 @@ va_is_dirty(void *va)
 
 // Fault any disk block that is read in to memory by
 // loading it from disk.
-static void
+static bool
 bc_pgfault(struct UTrapframe *utf)
 {
 	void *addr = (void *) utf->utf_fault_va;
@@ -68,6 +68,8 @@ bc_pgfault(struct UTrapframe *utf)
 	// in?)
 	if (bitmap && block_is_free(blockno))
 		panic("reading free block %08x\n", blockno);
+
+    return true;
 }
 
 // Flush the contents of the block containing VA out to disk if

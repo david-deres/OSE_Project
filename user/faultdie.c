@@ -2,13 +2,14 @@
 
 #include <inc/lib.h>
 
-void
+bool
 handler(struct UTrapframe *utf)
 {
 	void *addr = (void*)utf->utf_fault_va;
 	uint32_t err = utf->utf_err;
 	cprintf("i faulted at va %x, err %x\n", addr, err & 7);
 	sys_env_destroy(sys_getenvid());
+    return true;
 }
 
 void
