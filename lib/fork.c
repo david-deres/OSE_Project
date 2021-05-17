@@ -84,6 +84,13 @@ duppage(envid_t envid, unsigned pn)
     if ((perm & PTE_P) == 0) {
         return -E_INVAL;
     }
+    if ((perm & PTE_SHARE) != 0){
+        if ((r = sys_page_map(curenv->env_id, (void*)(pn*PGSIZE),
+                    envid, (void*)(pn*PGSIZE), perm)) < 0){
+            return r;
+        }
+        return 0;
+    }
     if ((perm & (PTE_W | PTE_COW)) != 0) {
         perm = (perm | PTE_COW) & ~PTE_W;
     }
