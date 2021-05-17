@@ -316,9 +316,8 @@ copy_shared_pages(envid_t child)
                 continue;
             }
             if ((uvpt[page_num] & PTE_SHARE) != 0) {
-                if ((r = sys_page_map(curenv->env_id,
-                                      (void *)(page_num * PGSIZE), child,
-                                      (void *)(page_num * PGSIZE),
+                if ((r = sys_page_map(curenv->env_id, page_addr, child,
+                                      page_addr,
                                       uvpt[page_num] & PTE_SYSCALL)) < 0) {
                     return r;
                 }
