@@ -239,7 +239,7 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 		cprintf("serve_write %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
 	// LAB 5: Your code here.
-		struct OpenFile* ofp;
+	struct OpenFile* ofp;
 	int r;
 	ssize_t nbytes_written=0;
 	if ((r = openfile_lookup(envid, req->req_fileid, &ofp))<0){
