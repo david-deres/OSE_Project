@@ -163,19 +163,26 @@ open(const char *path, int mode)
 	int r;
 	struct Fd *fd;
 
-	if (strlen(path) >= MAXPATHLEN)
+    char *path_buff = malloc();
+    if (path_buff == NULL) {
+        return -E_NO_MEM;
+    }
+
+	if (canonalize_path(path, path_buff) < 0)
 		return -E_BAD_PATH;
 
 	if ((r = fd_alloc(&fd)) < 0)
 		return r;
 
-	strcpy(fsipcbuf.open.req_path, path);
+	strcpy(fsipcbuf.open.req_path, path_buff);
 	fsipcbuf.open.req_omode = mode;
 
 	if ((r = fsipc(FSREQ_OPEN, fd)) < 0) {
 		fd_close(fd, 0);
 		return r;
 	}
+
+    free(path_buff);
 
 	return fd2num(fd);
 }
