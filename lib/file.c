@@ -4,6 +4,98 @@
 
 #define debug 0
 
+#define ROOT "/"
+#define CUR_DIR "."
+#define PREV_DIR ".."
+
+static char cwd[MAXPATHLEN] = ROOT;
+
+// scans the path for the last dir
+// return a pointer to the last dir in the path
+static char *find_last_dir(char *path) {
+    int len = strlen(path);
+    int i;
+    int entry_index = 0;
+    for (i = 0; i < len; i++) {
+        if (path[i] == '/') {
+            entry_index = i;
+        }
+    }
+    return path + entry_index;
+}
+
+// finds the canonical representatin of the given path,
+// starting from the root.
+// returns 0 on success and stores the result in path_buff
+// returns -E_BAD_PATH if the path cannot be canonalized
+//
+// NOTE: only handles full paths, relative paths with initial dot,
+// double dot or empty start (works the same as starting with "./" )
+//
+// file names starting with . are not supported
+static int canonalize_path(const char *path, char *path_buff) {
+
+    assert(path != NULL);
+    assert(path_buff != NULL);
+
+    if (debug) {
+        cprintf("canonalizing path %s, relative to CWD %s\n", path, cwd);
+    }
+
+    // start with an empty string for concatenation
+    *path_buff = '\0';
+
+    if (strncmp(path, ROOT, strlen(ROOT)) == 0) {
+        // return full paths as is
+    } else if (strncmp(path, PREV_DIR, strlen(PREV_DIR)) == 0) {
+        // prepend CWD without last dir to relative path instead of ..
+        path += strlen(PREV_DIR);
+
+        if (strcmp(cwd, ROOT) == 0) {
+            // no path before the root
+            return -E_BAD_PATH;
+        }
+
+        strcpy(path_buff, cwd);
+        // remove the last dir of the path
+        *find_last_dir(path_buff) = '\0';
+    } else if (strncmp(path, CUR_DIR, strlen(CUR_DIR)) == 0) {
+        // prepend CWD to relative path instead of .
+        path += strlen(CUR_DIR);
+
+        strcpy(path_buff, cwd);
+    } else {
+        // prepend CWD to relative path
+        strcpy(path_buff, cwd);
+    }
+
+    if (strlen(path_buff) + (strlen(path)) >= MAXPATHLEN) {
+        return -E_BAD_PATH;
+    }
+
+    strcat(path_buff, path);
+
+    int path_len = strlen(path_buff);
+    if (path_len > 0 && (path_buff)[path_len - 1] == '/') {
+        // remove trailing '/' from path
+        (path_buff)[path_len - 1] = '\0';
+    }
+
+    if (strncmp(path_buff, "//", 2) == 0) {
+        // pretended that "/" behaves like other paths for symmetry
+        // now correct it.
+        memmove(path_buff, path_buff + 1, strlen(path_buff) - 1);
+        // remove repeated character at the end
+        (path_buff)[strlen(path_buff) - 1] = '\0';
+    }
+
+    if (debug) {
+        cprintf("returning canonical path %s\n", path_buff);
+    }
+
+    return 0;
+}
+
 union Fsipc fsipcbuf __attribute__((aligned(PGSIZE)));
 
 // Send an inter-environment request to the file server, and wait for
