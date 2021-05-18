@@ -1,8 +1,9 @@
 #include <inc/lib.h>
 
-#define BUFSIZ 1024		/* Find the buffer overrun bug! */
 int debug = 0;
 
+
+static char *PATH = "/";
 
 // gettoken(s, 0) prepares gettoken for subsequent calls and returns 0.
 // gettoken(0, token) parses a shell token from the previously set string,
@@ -11,6 +12,30 @@ int debug = 0;
 // Subsequent calls to 'gettoken(0, token)' will return subsequent
 // tokens from the string.
 int gettoken(char *s, char **token);
+
+// appends the current PATH to the given path if relevant
+// returns 0 on success, or -E_BAD_PATH if the new path is too big
+static int prepend_path(const char *path, char *path_buff) {
+    if (*path == '/' || *path == '.') {
+        // this is an absolute path,
+        // or a path relative to the current working directory
+        // use as is
+        if (strlen(path) >= MAXPATHLEN) {
+            return -E_BAD_PATH;
+        }
+        strcpy(path_buff, path);
+        return 0;
+    }
+    if (strlen(path) + strlen(PATH) + 1 >= MAXPATHLEN) {
+        return -E_BAD_PATH;
+    }
+    strcpy(path_buff, PATH);
+    if (strcmp(PATH, "/") != 0) {
+        strcat(path_buff, "/");
+    }
+    strcat(path_buff, path);
+    return 0;
+}
 
 
 // Parse a shell command from string 's' and execute it.
@@ -21,7 +46,7 @@ int gettoken(char *s, char **token);
 void
 runcmd(char* s)
 {
-	char *argv[MAXARGS], *t, argv0buf[BUFSIZ];
+	char *argv[MAXARGS], *t;
 	int argc, c, i, r, p[2], fd, pipe_child;
 
 	pipe_child = 0;
@@ -142,11 +167,16 @@ runit:
 	// Read all commands from the filesystem: add an initial '/' to
 	// the command name.
 	// This essentially acts like 'PATH=/'.
-	if (argv[0][0] != '/') {
-		argv0buf[0] = '/';
-		strcpy(argv0buf + 1, argv[0]);
-		argv[0] = argv0buf;
-	}
+    char *cmd_name = malloc();
+    if (cmd_name == NULL) {
+        cprintf("spawn %s: %e\n", argv[0], -E_NO_MEM);
+        exit();
+    }
+    r = prepend_path(argv[0], cmd_name);
+    if (r<0) {
+        cprintf("spawn %s: %e\n", argv[0], r);
+        exit();
+    }
 	argv[argc] = 0;
 
 	// Print the command.
@@ -158,19 +188,21 @@ runit:
 	}
 
 	// Spawn the command!
-	if ((r = spawn(argv[0], (const char**) argv)) < 0)
-		cprintf("spawn %s: %e\n", argv[0], r);
+	if ((r = spawn(cmd_name, (const char**) argv)) < 0)
+		cprintf("spawn %s: %e\n", cmd_name, r);
 
 	// In the parent, close all file descriptors and wait for the
 	// spawned command to exit.
 	close_all();
 	if (r >= 0) {
 		if (debug)
-			cprintf("[%08x] WAIT %s %08x\n", thisenv->env_id, argv[0], r);
+			cprintf("[%08x] WAIT %s %08x\n", thisenv->env_id, cmd_name, r);
 		wait(r);
 		if (debug)
 			cprintf("[%08x] wait finished\n", thisenv->env_id);
 	}
+
+    free(cmd_name);
 
 	// If we were the left-hand part of a pipe,
 	// wait for the right-hand part to finish.
