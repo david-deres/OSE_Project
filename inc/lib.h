@@ -121,6 +121,10 @@ int	opencons(void);
 int	pipe(int pipefds[2]);
 int	pipeisclosed(int pipefd);
 
+// alloc.c
+void *malloc();
+void free(void *page);
+
 // wait.c
 void	wait(envid_t env);
 
