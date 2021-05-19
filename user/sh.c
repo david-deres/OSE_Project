@@ -164,9 +164,8 @@ runit:
 	}
 
 	// Clean up command line.
-	// Read all commands from the filesystem: add an initial '/' to
-	// the command name.
-	// This essentially acts like 'PATH=/'.
+	// Read all commands from the filesystem
+	// add PATH to the command name.
     char *cmd_name = malloc();
     if (cmd_name == NULL) {
         cprintf("spawn %s: %e\n", argv[0], -E_NO_MEM);
