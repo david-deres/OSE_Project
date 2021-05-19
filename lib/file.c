@@ -187,6 +187,23 @@ open(const char *path, int mode)
 	return fd2num(fd);
 }
 
+// change the envs current working directory
+// returns on success or negative value in case of an error
+int chdir(char *path) {
+    char *path_buff = malloc();
+    if (path_buff == NULL) {
+        return -E_NO_MEM;
+    }
+
+    int r = canonalize_path(path, path_buff);
+    if (r<0) {
+        return r;
+    }
+    strcpy(cwd, path_buff);
+    free(path_buff);
+    return 0;
+}
+
 // Flush the file descriptor.  After this the fileid is invalid.
 //
 // This function is called by fd_close.  fd_close will take care of
