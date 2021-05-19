@@ -3,6 +3,16 @@
 #define BUFSIZ 1024		/* Find the buffer overrun bug! */
 int debug = 0;
 
+#define MAX_VARS 128
+
+// amapping between keys, represented in the command line with an initial '$'
+// and the values they will be substituted with
+struct VarMap {
+    // key-value pairs are represented by entries with the same index
+    char *keys[MAX_VARS];
+    char *values[MAX_VARS];
+};
+
 struct Tokenizer {
     int   c;
     int   nc;
