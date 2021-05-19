@@ -38,6 +38,44 @@ static int prepend_path(const char *path, char *path_buff) {
     return 0;
 }
 
+static void export(char *key, char *value) {
+    if (strcmp(key, "PATH") != 0) {
+        cprintf("exporting variables other than PATH is not supported\n");
+        exit();
+    }
+    if (strlen(value) > PGSIZE) {
+        cprintf("value to big\n");
+        exit();
+    }
+    if (PATH == NULL) {
+        PATH = malloc();
+        if (PATH == NULL) {
+            cprintf("unable to set PATH: %e\n", -E_NO_MEM);
+            exit();
+        }
+    }
+    strcpy(PATH, value);
+}
+
+static bool try_builtin(int argc, char **argv) {
+    if (argc >= 2 && strcmp(argv[0], "export") == 0) {
+        char *value = strfind(argv[1], '=');
+        if (*value == '\0') {
+            cprintf("export arg must contain = to export a value\n");
+            exit();
+        }
+        // seperate key and value pair
+        *value = '\0';
+        value += 1;
+        char *key = argv[1];
+        if (debug) {
+            cprintf("exporting key \"%s\" as value \"%s\"\n", key, value);
+        }
+        export(key, value);
+        return true;
+    }
+    return false;
+}
 
 // Parse a shell command from string 's' and execute it.
 // Do not return until the shell command is finished.
