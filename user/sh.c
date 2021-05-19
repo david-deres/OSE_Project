@@ -20,6 +20,69 @@ struct Tokenizer {
     char *np2;
 };
 
+static struct VarMap var_map = {};
+
+// searches for a variable with the given key
+// and if found, returns a pointer to its value
+// otherwise returns NULL
+char *find_var(const char *key) {
+    int i;
+    for (i = 0; i < MAX_VARS; i++) {
+        if (var_map.keys[i] != NULL && strcmp(var_map.keys[i], key) == 0) {
+            return var_map.values[i];
+        }
+    }
+    return NULL;
+}
+
+// if the variable exists, sets value as the new value
+// otherwise allocates a new slot in the map
+// and writes the key-value pair there
+//
+// returns 0 on success, and <0 value on error
+int set_var(const char *key, const char *value) {
+    char *cur_value = find_var(key);
+    if (cur_value != NULL) {
+        strcpy(cur_value, value);
+        return 0;
+    }
+    int i;
+    for (i = 0; i < MAX_VARS; i++) {
+        if (var_map.keys[i] == NULL) {
+            var_map.keys[i] = malloc();
+            if (var_map.keys[i] == NULL) {
+                return -E_NO_MEM;
+            }
+            var_map.values[i] = malloc();
+            if (var_map.values[i] == NULL) {
+                free(var_map.keys[i]);
+                return -E_NO_MEM;
+            }
+            strcpy(var_map.keys[i], key);
+            int val_len =strlen(value);
+            memmove(var_map.values[i], value, val_len);
+            var_map.values[i][val_len] = '\0';
+            return 0;
+        }
+    }
+    return -E_MAX_OPEN;
+}
+
+// removes the key-value pair for the given key,
+// if found in the map. does nothing otherwise
+void remove_var(const char *key) {
+    int i;
+    for (i = 0; i < MAX_VARS; i++) {
+        if (var_map.keys[i] != NULL && strcmp(var_map.keys[i], key) == 0) {
+            free(var_map.keys[i]);
+            free(var_map.values[i]);
+            var_map.keys[i] = NULL;
+            var_map.values[i] = NULL;
+            return;
+        }
+    }
+}
+
 static char *PATH = "/";
 
 // gettoken(s, 0) prepares gettoken for subsequent calls and returns 0.
@@ -31,22 +94,24 @@ static char *PATH = "/";
 int gettoken(struct Tokenizer *tkr, char *s, char **token);
 
 static void export(char *key, char *value) {
-    if (strcmp(key, "PATH") != 0) {
-        cprintf("exporting variables other than PATH is not supported\n");
+    if (strlen(key) == 0) {
+        cprintf("empty key is not allowed\n");
+        return;
+    }
+    if (strlen(key) > PGSIZE) {
+        cprintf("key is too big\n");
         return;
     }
     if (strlen(value) > PGSIZE) {
-        cprintf("value to big\n");
+        cprintf("value is too big\n");
         return;
     }
-    if (PATH == NULL) {
-        PATH = malloc();
-        if (PATH == NULL) {
-            cprintf("unable to set PATH: %e\n", -E_NO_MEM);
-            return;
-        }
+
+    int r = set_var(key, value);
+    if (r<0) {
+        cprintf("unable to set key-value pair: %e\n", r);
+        return;
     }
-    strcpy(PATH, value);
 }
 
 static bool try_builtin(char *string) {
