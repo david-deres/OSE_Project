@@ -1,5 +1,6 @@
 #include <inc/lib.h>
 
+#define BUFSIZ 1024		/* Find the buffer overrun bug! */
 int debug = 0;
 
 struct Tokenizer {
@@ -8,7 +9,6 @@ struct Tokenizer {
 	char *np1;
     char *np2;
 };
-
 
 static char *PATH = "/";
 
@@ -104,7 +104,7 @@ void
 runcmd(char* s)
 {
     struct Tokenizer tkr = {};
-	char *argv[MAXARGS], *t;
+	char *argv[MAXARGS], *t, argv0buf[BUFSIZ];
 	int argc, c, i, r, p[2], fd, pipe_child;
 
 	pipe_child = 0;
@@ -222,18 +222,14 @@ runit:
 	}
 
 	// Clean up command line.
-	// Read all commands from the filesystem
-	// add PATH to the command name.
-    char *cmd_name = malloc();
-    if (cmd_name == NULL) {
-        cprintf("spawn %s: %e\n", argv[0], -E_NO_MEM);
-        exit();
-    }
-    r = prepend_path(argv[0], cmd_name);
-    if (r<0) {
-        cprintf("spawn %s: %e\n", argv[0], r);
-        exit();
-    }
+	// Read all commands from the filesystem: add an initial '/' to
+	// the command name.
+	// This essentially acts like 'PATH=/'.
+	if (argv[0][0] != '/') {
+		argv0buf[0] = '/';
+		strcpy(argv0buf + 1, argv[0]);
+		argv[0] = argv0buf;
+	}
 	argv[argc] = 0;
 
 	// Print the command.
@@ -245,21 +241,19 @@ runit:
 	}
 
 	// Spawn the command!
-	if ((r = spawn(cmd_name, (const char**) argv)) < 0)
-		cprintf("spawn %s: %e\n", cmd_name, r);
+	if ((r = spawn(argv[0], (const char**) argv)) < 0)
+		cprintf("spawn %s: %e\n", argv[0], r);
 
 	// In the parent, close all file descriptors and wait for the
 	// spawned command to exit.
 	close_all();
 	if (r >= 0) {
 		if (debug)
-			cprintf("[%08x] WAIT %s %08x\n", thisenv->env_id, cmd_name, r);
+			cprintf("[%08x] WAIT %s %08x\n", thisenv->env_id, argv[0], r);
 		wait(r);
 		if (debug)
 			cprintf("[%08x] wait finished\n", thisenv->env_id);
 	}
-
-    free(cmd_name);
 
 	// If we were the left-hand part of a pipe,
 	// wait for the right-hand part to finish.
