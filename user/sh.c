@@ -20,30 +20,6 @@ static char *PATH = "/";
 // tokens from the string.
 int gettoken(struct Tokenizer *tkr, char *s, char **token);
 
-// appends the current PATH to the given path if relevant
-// returns 0 on success, or -E_BAD_PATH if the new path is too big
-static int prepend_path(const char *path, char *path_buff) {
-    if (*path == '/' || *path == '.') {
-        // this is an absolute path,
-        // or a path relative to the current working directory
-        // use as is
-        if (strlen(path) >= MAXPATHLEN) {
-            return -E_BAD_PATH;
-        }
-        strcpy(path_buff, path);
-        return 0;
-    }
-    if (strlen(path) + strlen(PATH) + 1 >= MAXPATHLEN) {
-        return -E_BAD_PATH;
-    }
-    strcpy(path_buff, PATH);
-    if (strcmp(PATH, "/") != 0) {
-        strcat(path_buff, "/");
-    }
-    strcat(path_buff, path);
-    return 0;
-}
-
 static void export(char *key, char *value) {
     if (strcmp(key, "PATH") != 0) {
         cprintf("exporting variables other than PATH is not supported\n");
