@@ -10,7 +10,7 @@ struct Tokenizer {
 };
 
 
-static char *PATH = NULL;
+static char *PATH = "/";
 
 // gettoken(s, 0) prepares gettoken for subsequent calls and returns 0.
 // gettoken(0, token) parses a shell token from the previously set string,
@@ -33,12 +33,11 @@ static int prepend_path(const char *path, char *path_buff) {
         strcpy(path_buff, path);
         return 0;
     }
-    char *bin_path = PATH == NULL ? "/" : PATH;
-    if (strlen(path) + strlen(bin_path) + 1 >= MAXPATHLEN) {
+    if (strlen(path) + strlen(PATH) + 1 >= MAXPATHLEN) {
         return -E_BAD_PATH;
     }
-    strcpy(path_buff, bin_path);
-    if (strcmp(bin_path, "/") != 0) {
+    strcpy(path_buff, PATH);
+    if (strcmp(PATH, "/") != 0) {
         strcat(path_buff, "/");
     }
     strcat(path_buff, path);
