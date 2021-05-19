@@ -2,6 +2,13 @@
 
 int debug = 0;
 
+struct Tokenizer {
+    int   c;
+    int   nc;
+	char *np1;
+    char *np2;
+};
+
 
 static char *PATH = NULL;
 
@@ -11,7 +18,7 @@ static char *PATH = NULL;
 // and returns a token ID (0, '<', '>', '|', or 'w').
 // Subsequent calls to 'gettoken(0, token)' will return subsequent
 // tokens from the string.
-int gettoken(char *s, char **token);
+int gettoken(struct Tokenizer *tkr, char *s, char **token);
 
 // appends the current PATH to the given path if relevant
 // returns 0 on success, or -E_BAD_PATH if the new path is too big
@@ -85,16 +92,17 @@ static bool try_builtin(int argc, char **argv) {
 void
 runcmd(char* s)
 {
+    struct Tokenizer tkr = {};
 	char *argv[MAXARGS], *t;
 	int argc, c, i, r, p[2], fd, pipe_child;
 
 	pipe_child = 0;
-	gettoken(s, 0);
+	gettoken(&tkr, s, 0);
 
 again:
 	argc = 0;
 	while (1) {
-		switch ((c = gettoken(0, &t))) {
+		switch ((c = gettoken(&tkr, 0, &t))) {
 
 		case 'w':	// Add an argument
 			if (argc == MAXARGS) {
@@ -106,7 +114,7 @@ again:
 
 		case '<':	// Input redirection
 			// Grab the filename from the argument list
-			if (gettoken(0, &t) != 'w') {
+			if (gettoken(&tkr, 0, &t) != 'w') {
 				cprintf("syntax error: < not followed by word\n");
 				exit();
 			}
@@ -139,7 +147,7 @@ again:
 
 		case '>':	// Output redirection
 			// Grab the filename from the argument list
-			if (gettoken(0, &t) != 'w') {
+			if (gettoken(&tkr, 0, &t) != 'w') {
 				cprintf("syntax error: > not followed by word\n");
 				exit();
 			}
@@ -318,19 +326,16 @@ _gettoken(char *s, char **p1, char **p2)
 }
 
 int
-gettoken(char *s, char **p1)
+gettoken(struct Tokenizer *tkr, char *s, char **p1)
 {
-	static int c, nc;
-	static char* np1, *np2;
-
 	if (s) {
-		nc = _gettoken(s, &np1, &np2);
+		tkr->nc = _gettoken(s, &tkr->np1, &tkr->np2);
 		return 0;
 	}
-	c = nc;
-	*p1 = np1;
-	nc = _gettoken(np2, &np1, &np2);
-	return c;
+	tkr->c = tkr->nc;
+	*p1 = tkr->np1;
+	tkr->nc = _gettoken(tkr->np2, &tkr->np1, &tkr->np2);
+	return tkr->c;
 }
 
 
