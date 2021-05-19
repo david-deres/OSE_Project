@@ -91,6 +91,18 @@ static bool try_builtin(char *string) {
         }
         export(key, value);
         return true;
+    } else if (c == 'w' && strcmp(token, "cd") == 0) {
+        c = gettoken(&tkr, 0, &token);
+        if (c != 'w') {
+            cprintf("expected directory after cd\n");
+            return true;
+        }
+
+        int r = chdir(token);
+        if (r<0) {
+            cprintf("unable to change directory: %e\n", r);
+        }
+        return true;
     } else {
         return false;
     }
