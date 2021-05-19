@@ -410,6 +410,19 @@ umain(int argc, char **argv)
 			printf("# %s\n", buf);
 		if (debug)
 			cprintf("BEFORE FORK\n");
+
+        char *cmd_copy = malloc();
+        if (cmd_copy == NULL) {
+            cprintf("unable to execute command: %e\n", -E_NO_MEM);
+            continue;
+        }
+        strcpy(cmd_copy, buf);
+        bool ran_builtin = try_builtin(cmd_copy);
+        free(cmd_copy);
+        if (ran_builtin) {
+            continue;
+        }
+
 		if ((r = fork()) < 0)
 			panic("fork: %e", r);
 		if (debug)
