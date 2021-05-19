@@ -48,40 +48,52 @@ static int prepend_path(const char *path, char *path_buff) {
 static void export(char *key, char *value) {
     if (strcmp(key, "PATH") != 0) {
         cprintf("exporting variables other than PATH is not supported\n");
-        exit();
+        return;
     }
     if (strlen(value) > PGSIZE) {
         cprintf("value to big\n");
-        exit();
+        return;
     }
     if (PATH == NULL) {
         PATH = malloc();
         if (PATH == NULL) {
             cprintf("unable to set PATH: %e\n", -E_NO_MEM);
-            exit();
+            return;
         }
     }
     strcpy(PATH, value);
 }
 
-static bool try_builtin(int argc, char **argv) {
-    if (argc >= 2 && strcmp(argv[0], "export") == 0) {
-        char *value = strfind(argv[1], '=');
+static bool try_builtin(char *string) {
+    struct Tokenizer tkr = {};
+    gettoken(&tkr, string, 0);
+    char *token;
+    char c = gettoken(&tkr, 0, &token);
+    if (c == 'w' && strcmp(token, "export") == 0) {
+        c = gettoken(&tkr, 0, &token);
+        if (c != 'w') {
+            cprintf("expected key-value pair after export\n");
+            return true;
+        }
+
+        char *value = strfind(token, '=');
         if (*value == '\0') {
             cprintf("export arg must contain = to export a value\n");
-            exit();
+            return true;
         }
         // seperate key and value pair
         *value = '\0';
         value += 1;
-        char *key = argv[1];
+        char *key = token;
         if (debug) {
             cprintf("exporting key \"%s\" as value \"%s\"\n", key, value);
+            return true;
         }
         export(key, value);
         return true;
+    } else {
+        return false;
     }
-    return false;
 }
 
 // Parse a shell command from string 's' and execute it.
