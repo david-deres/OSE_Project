@@ -132,8 +132,6 @@ serve_open(envid_t envid, struct Fsreq_open *req,
 			if (debug)
 				cprintf("file_create failed: %e", r);
 			return r;
-		} else {
-			f->f_type = (req->req_omode & O_DIRECTORY) ? FTYPE_DIR : FTYPE_REG;
 		}
 	} else {
 try_open:
@@ -141,11 +139,6 @@ try_open:
 			if (debug)
 				cprintf("file_open failed: %e", r);
 			return r;
-		}
-		if ((req->req_omode & O_DIRECTORY) && f->f_type != FTYPE_DIR ) {
-			if (debug)
-				cprintf("file open failed: file is not a directory");
-			return -E_NOT_FOUND;
 		}
 	}
 

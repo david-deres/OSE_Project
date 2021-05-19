@@ -137,7 +137,6 @@ void	wait(envid_t env);
 #define	O_CREAT		0x0100		/* create if nonexistent */
 #define	O_TRUNC		0x0200		/* truncate to zero length */
 #define	O_EXCL		0x0400		/* error if already exists */
-#define O_DIRECTORY	0x0800      /* create directory when coupled with O_CREAT, */
-				                /* otherwise verify that the file is a directory */
+#define O_MKDIR		0x0800		/* create directory, not regular file */
 
 #endif	// !JOS_INC_LIB_H
