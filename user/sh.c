@@ -83,6 +83,19 @@ void remove_var(const char *key) {
     }
 }
 
+// checks if the given arg is a variable that needs to be substituted
+// returns the value itself if it isn't a var,
+// returns the substituted value if it is a var
+// returns NULL if it is a var but doesnt exist in the map
+char *substitute_var(char *arg) {
+    if (strchr(arg, '$') == arg) {
+        // the string starts with $ and is therefore a var
+        return find_var(arg + 1);
+    } else {
+        return arg;
+    }
+}
+
 static char *PATH = "/";
 
 // gettoken(s, 0) prepares gettoken for subsequent calls and returns 0.
