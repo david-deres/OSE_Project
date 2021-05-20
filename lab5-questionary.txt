@@ -46,10 +46,13 @@ so the privilege changes accordingly.
 ====================================================================
 === Q What challenge(s) have you chosen to implement? (specify
 ===   challenge numbers separated by spaces, if more than one)
-
+6
 === Q If the challenge requires changing the kernel source, list the
 ===   files which you have changed/added during implementation.
 ===   (one file per line, relative to lab directory containing .git/)
-
+inc/lib.h
+lib/Makefrag
+lib/alloc.c
+user/sh.c
 === Q Describe you solution.
 ===   (free form, up to 500 words, don't need to use all 500!)
