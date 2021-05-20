@@ -4,13 +4,17 @@
 int debug = 0;
 
 #define MAX_VARS 128
+#define MAX_VAR_SIZE 256
+
+// allows temporarily copying the command line for parsing builtins
+static char cmd_copy[BUFSIZ];
 
 // amapping between keys, represented in the command line with an initial '$'
 // and the values they will be substituted with
 struct VarMap {
     // key-value pairs are represented by entries with the same index
-    char *keys[MAX_VARS];
-    char *values[MAX_VARS];
+    char keys[MAX_VARS][MAX_VAR_SIZE];
+    char values[MAX_VARS][MAX_VAR_SIZE];
 };
 
 struct Tokenizer {
@@ -28,7 +32,7 @@ static struct VarMap var_map = {};
 char *find_var(const char *key) {
     int i;
     for (i = 0; i < MAX_VARS; i++) {
-        if (var_map.keys[i] != NULL && strcmp(var_map.keys[i], key) == 0) {
+        if (strcmp(var_map.keys[i], key) == 0) {
             return var_map.values[i];
         }
     }
@@ -48,20 +52,13 @@ int set_var(const char *key, const char *value) {
     }
     int i;
     for (i = 0; i < MAX_VARS; i++) {
-        if (var_map.keys[i] == NULL) {
-            var_map.keys[i] = malloc();
-            if (var_map.keys[i] == NULL) {
-                return -E_NO_MEM;
-            }
-            var_map.values[i] = malloc();
-            if (var_map.values[i] == NULL) {
-                free(var_map.keys[i]);
-                return -E_NO_MEM;
-            }
+        if (*var_map.keys[i] == '\0') {
             strcpy(var_map.keys[i], key);
-            int val_len =strlen(value);
+
+            int val_len = strlen(value);
             memmove(var_map.values[i], value, val_len);
             var_map.values[i][val_len] = '\0';
+
             return 0;
         }
     }
@@ -73,11 +70,9 @@ int set_var(const char *key, const char *value) {
 void remove_var(const char *key) {
     int i;
     for (i = 0; i < MAX_VARS; i++) {
-        if (var_map.keys[i] != NULL && strcmp(var_map.keys[i], key) == 0) {
-            free(var_map.keys[i]);
-            free(var_map.values[i]);
-            var_map.keys[i] = NULL;
-            var_map.values[i] = NULL;
+        if (strcmp(var_map.keys[i], key) == 0) {
+            *var_map.keys[i] = '\0';
+            *var_map.values[i] = '\0';
             return;
         }
     }
@@ -105,11 +100,11 @@ char *substitute_var(char *arg) {
 int gettoken(struct Tokenizer *tkr, char *s, char **token);
 
 static void export(char *key, char *value) {
-    if (strlen(key) >= PGSIZE) {
+    if (strlen(key) >= MAX_VAR_SIZE) {
         cprintf("key is too big\n");
         return;
     }
-    if (strlen(value) >= PGSIZE) {
+    if (strlen(value) >= MAX_VAR_SIZE) {
         cprintf("value is too big\n");
         return;
     }
@@ -483,15 +478,8 @@ umain(int argc, char **argv)
 		if (debug)
 			cprintf("BEFORE FORK\n");
 
-        char *cmd_copy = malloc();
-        if (cmd_copy == NULL) {
-            cprintf("unable to execute command: %e\n", -E_NO_MEM);
-            continue;
-        }
         strcpy(cmd_copy, buf);
-        bool ran_builtin = try_builtin(cmd_copy);
-        free(cmd_copy);
-        if (ran_builtin) {
+        if (try_builtin(cmd_copy)) {
             continue;
         }
 
