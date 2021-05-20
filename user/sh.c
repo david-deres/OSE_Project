@@ -96,8 +96,6 @@ char *substitute_var(char *arg) {
     }
 }
 
-static char *PATH = "/";
-
 // gettoken(s, 0) prepares gettoken for subsequent calls and returns 0.
 // gettoken(0, token) parses a shell token from the previously set string,
 // null-terminates that token, stores the token pointer in '*token',
