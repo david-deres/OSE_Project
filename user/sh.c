@@ -107,21 +107,11 @@ static char *PATH = "/";
 int gettoken(struct Tokenizer *tkr, char *s, char **token);
 
 static void export(char *key, char *value) {
-    if (strlen(key) == 0) {
-        cprintf("empty key is not allowed\n");
-        return;
-    }
-
-    if (strlen(value) == 0) {
-        remove_var(key);
-        return;
-    }
-
-    if (strlen(key) > PGSIZE) {
+    if (strlen(key) >= PGSIZE) {
         cprintf("key is too big\n");
         return;
     }
-    if (strlen(value) > PGSIZE) {
+    if (strlen(value) >= PGSIZE) {
         cprintf("value is too big\n");
         return;
     }
@@ -139,21 +129,20 @@ static bool try_builtin(char *string) {
     char *token;
     char c = gettoken(&tkr, 0, &token);
     if (c == 'w' && strcmp(token, "export") == 0) {
-        c = gettoken(&tkr, 0, &token);
+        char *key;
+        char *value;
+        c = gettoken(&tkr, 0, &key);
         if (c != 'w') {
-            cprintf("expected key-value pair after export\n");
+            cprintf("expected key after export\n");
             return true;
         }
 
-        char *value = strfind(token, '=');
-        if (*value == '\0') {
-            cprintf("export arg must contain = to export a value\n");
+        c = gettoken(&tkr, 0, &value);
+        if (c != 'w') {
+            cprintf("expected value after export\n");
             return true;
         }
-        // seperate key and value pair
-        *value = '\0';
-        value += 1;
-        char *key = token;
+
         if (debug) {
             cprintf("exporting key \"%s\" as value \"%s\"\n", key, value);
             return true;
@@ -407,9 +396,18 @@ gettoken(struct Tokenizer *tkr, char *s, char **p1)
 		tkr->nc = _gettoken(s, &tkr->np1, &tkr->np2);
 		return 0;
 	}
-	tkr->c = tkr->nc;
-	*p1 = tkr->np1;
-	tkr->nc = _gettoken(tkr->np2, &tkr->np1, &tkr->np2);
+    do {
+        tkr->c = tkr->nc;
+	    *p1 = tkr->np1;
+	    tkr->nc = _gettoken(tkr->np2, &tkr->np1, &tkr->np2);
+        // skip undefined variables in command line
+    } while (tkr->c == 'w' && substitute_var(*p1) == NULL);
+
+    // substitute variables at the token level so they can be treated uniformally
+    if (tkr->c == 'w') {
+        *p1 = substitute_var(*p1);
+    }
+
 	return tkr->c;
 }
 
