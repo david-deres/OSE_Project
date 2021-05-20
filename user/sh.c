@@ -149,6 +149,19 @@ static bool try_builtin(char *string) {
         }
         export(key, value);
         return true;
+    } else if (c == 'w' && strcmp(token, "unexport") == 0) {
+        char *key;
+        c = gettoken(&tkr, 0, &key);
+        if (c != 'w') {
+            cprintf("expected key after unexport\n");
+            return true;
+        }
+        if (debug) {
+            cprintf("unexporting key \"%s\"", key);
+            return true;
+        }
+        remove_var(key);
+        return true;
     } else {
         return false;
     }
