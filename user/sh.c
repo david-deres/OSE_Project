@@ -111,6 +111,12 @@ static void export(char *key, char *value) {
         cprintf("empty key is not allowed\n");
         return;
     }
+
+    if (strlen(value) == 0) {
+        remove_var(key);
+        return;
+    }
+
     if (strlen(key) > PGSIZE) {
         cprintf("key is too big\n");
         return;
