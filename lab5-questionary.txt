@@ -41,7 +41,7 @@ so the privilege changes accordingly.
 === Q How long approximately did it take you to do this lab?
 ===   (number of hours for all partners combined)
 
-0x12
+0x1A
 
 ====================================================================
 === Q What challenge(s) have you chosen to implement? (specify
