@@ -17,6 +17,18 @@ extern size_t npages;
 
 extern pde_t *kern_pgdir;
 
+enum {
+	PHYSICAL,
+	VIRTUAL,
+} typedef AddressType;
+
+// a range of either virtual or physical memory where start <= end
+struct {
+	uintptr_t start;
+	uintptr_t end;
+	AddressType type;
+} typedef MemoryRange;
+
 
 /* This macro takes a kernel virtual address -- an address that points above
  * KERNBASE, where the machine's maximum 256MB of physical memory is mapped --
@@ -67,6 +79,11 @@ void *	mmio_map_region(physaddr_t pa, size_t size);
 
 int	user_mem_check(struct Env *env, const void *va, size_t len, int perm);
 void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
+void    change_page_perm(MemoryRange range, int perm);
+void    show_pages(MemoryRange range);
+void    dump_range(MemoryRange range);
+void	clear_pages(MemoryRange range);
+void	set_pages(MemoryRange range, size_t vp);
 
 static inline physaddr_t
 page2pa(struct PageInfo *pp)

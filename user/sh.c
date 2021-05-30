@@ -3,6 +3,93 @@
 #define BUFSIZ 1024		/* Find the buffer overrun bug! */
 int debug = 0;
 
+#define MAX_VARS 128
+#define MAX_VAR_SIZE 256
+
+// allows temporarily copying the command line for parsing builtins
+static char cmd_copy[BUFSIZ];
+
+// amapping between keys, represented in the command line with an initial '$'
+// and the values they will be substituted with
+struct VarMap {
+    // key-value pairs are represented by entries with the same index
+    char keys[MAX_VARS][MAX_VAR_SIZE];
+    char values[MAX_VARS][MAX_VAR_SIZE];
+};
+
+struct Tokenizer {
+    int   c;
+    int   nc;
+	char *np1;
+    char *np2;
+};
+
+static struct VarMap var_map = {};
+
+// searches for a variable with the given key
+// and if found, returns a pointer to its value
+// otherwise returns NULL
+char *find_var(const char *key) {
+    int i;
+    for (i = 0; i < MAX_VARS; i++) {
+        if (strcmp(var_map.keys[i], key) == 0) {
+            return var_map.values[i];
+        }
+    }
+    return NULL;
+}
+
+// if the variable exists, sets value as the new value
+// otherwise allocates a new slot in the map
+// and writes the key-value pair there
+//
+// returns 0 on success, and <0 value on error
+int set_var(const char *key, const char *value) {
+    char *cur_value = find_var(key);
+    if (cur_value != NULL) {
+        strcpy(cur_value, value);
+        return 0;
+    }
+    int i;
+    for (i = 0; i < MAX_VARS; i++) {
+        if (*var_map.keys[i] == '\0') {
+            strcpy(var_map.keys[i], key);
+
+            int val_len = strlen(value);
+            memmove(var_map.values[i], value, val_len);
+            var_map.values[i][val_len] = '\0';
+
+            return 0;
+        }
+    }
+    return -E_MAX_OPEN;
+}
+
+// removes the key-value pair for the given key,
+// if found in the map. does nothing otherwise
+void remove_var(const char *key) {
+    int i;
+    for (i = 0; i < MAX_VARS; i++) {
+        if (strcmp(var_map.keys[i], key) == 0) {
+            *var_map.keys[i] = '\0';
+            *var_map.values[i] = '\0';
+            return;
+        }
+    }
+}
+
+// checks if the given arg is a variable that needs to be substituted
+// returns the value itself if it isn't a var,
+// returns the substituted value if it is a var
+// returns NULL if it is a var but doesnt exist in the map
+char *substitute_var(char *arg) {
+    if (strchr(arg, '$') == arg) {
+        // the string starts with $ and is therefore a var
+        return find_var(arg + 1);
+    } else {
+        return arg;
+    }
+}
 
 // gettoken(s, 0) prepares gettoken for subsequent calls and returns 0.
 // gettoken(0, token) parses a shell token from the previously set string,
@@ -10,8 +97,68 @@ int debug = 0;
 // and returns a token ID (0, '<', '>', '|', or 'w').
 // Subsequent calls to 'gettoken(0, token)' will return subsequent
 // tokens from the string.
-int gettoken(char *s, char **token);
+int gettoken(struct Tokenizer *tkr, char *s, char **token);
 
+static void export(char *key, char *value) {
+    if (strlen(key) >= MAX_VAR_SIZE) {
+        cprintf("key is too big\n");
+        return;
+    }
+    if (strlen(value) >= MAX_VAR_SIZE) {
+        cprintf("value is too big\n");
+        return;
+    }
+
+    int r = set_var(key, value);
+    if (r<0) {
+        cprintf("unable to set key-value pair: %e\n", r);
+        return;
+    }
+}
+
+static bool try_builtin(char *string) {
+    struct Tokenizer tkr = {};
+    gettoken(&tkr, string, 0);
+    char *token;
+    char c = gettoken(&tkr, 0, &token);
+    if (c == 'w' && strcmp(token, "export") == 0) {
+        char *key;
+        char *value;
+        c = gettoken(&tkr, 0, &key);
+        if (c != 'w') {
+            cprintf("expected key after export\n");
+            return true;
+        }
+
+        c = gettoken(&tkr, 0, &value);
+        if (c != 'w') {
+            cprintf("expected value after export\n");
+            return true;
+        }
+
+        if (debug) {
+            cprintf("exporting key \"%s\" as value \"%s\"\n", key, value);
+            return true;
+        }
+        export(key, value);
+        return true;
+    } else if (c == 'w' && strcmp(token, "unexport") == 0) {
+        char *key;
+        c = gettoken(&tkr, 0, &key);
+        if (c != 'w') {
+            cprintf("expected key after unexport\n");
+            return true;
+        }
+        if (debug) {
+            cprintf("unexporting key \"%s\"", key);
+            return true;
+        }
+        remove_var(key);
+        return true;
+    } else {
+        return false;
+    }
+}
 
 // Parse a shell command from string 's' and execute it.
 // Do not return until the shell command is finished.
@@ -21,16 +168,17 @@ int gettoken(char *s, char **token);
 void
 runcmd(char* s)
 {
+    struct Tokenizer tkr = {};
 	char *argv[MAXARGS], *t, argv0buf[BUFSIZ];
 	int argc, c, i, r, p[2], fd, pipe_child;
 
 	pipe_child = 0;
-	gettoken(s, 0);
+	gettoken(&tkr, s, 0);
 
 again:
 	argc = 0;
 	while (1) {
-		switch ((c = gettoken(0, &t))) {
+		switch ((c = gettoken(&tkr, 0, &t))) {
 
 		case 'w':	// Add an argument
 			if (argc == MAXARGS) {
@@ -42,7 +190,7 @@ again:
 
 		case '<':	// Input redirection
 			// Grab the filename from the argument list
-			if (gettoken(0, &t) != 'w') {
+			if (gettoken(&tkr, 0, &t) != 'w') {
 				cprintf("syntax error: < not followed by word\n");
 				exit();
 			}
@@ -55,12 +203,27 @@ again:
 			// then close the original 'fd'.
 
 			// LAB 5: Your code here.
-			panic("< redirection not implemented");
+			int r;
+			int fd = open(t, O_RDONLY);
+			if (fd < 0){
+				cprintf("%s is not a legal path\n", t);
+                exit();
+			}
+			if (fd != 0){
+				if ((r = dup(fd, 0)) < 0){
+				cprintf("dup error in '<' : %d\n", r);
+                exit();
+				}
+				if ((r = close(fd)) < 0){
+				cprintf("close error in '<' : %d\n", r);
+                exit();
+				}
+			}
 			break;
 
 		case '>':	// Output redirection
 			// Grab the filename from the argument list
-			if (gettoken(0, &t) != 'w') {
+			if (gettoken(&tkr, 0, &t) != 'w') {
 				cprintf("syntax error: > not followed by word\n");
 				exit();
 			}
@@ -233,19 +396,25 @@ _gettoken(char *s, char **p1, char **p2)
 }
 
 int
-gettoken(char *s, char **p1)
+gettoken(struct Tokenizer *tkr, char *s, char **p1)
 {
-	static int c, nc;
-	static char* np1, *np2;
-
 	if (s) {
-		nc = _gettoken(s, &np1, &np2);
+		tkr->nc = _gettoken(s, &tkr->np1, &tkr->np2);
 		return 0;
 	}
-	c = nc;
-	*p1 = np1;
-	nc = _gettoken(np2, &np1, &np2);
-	return c;
+    do {
+        tkr->c = tkr->nc;
+	    *p1 = tkr->np1;
+	    tkr->nc = _gettoken(tkr->np2, &tkr->np1, &tkr->np2);
+        // skip undefined variables in command line
+    } while (tkr->c == 'w' && substitute_var(*p1) == NULL);
+
+    // substitute variables at the token level so they can be treated uniformally
+    if (tkr->c == 'w') {
+        *p1 = substitute_var(*p1);
+    }
+
+	return tkr->c;
 }
 
 
@@ -308,6 +477,12 @@ umain(int argc, char **argv)
 			printf("# %s\n", buf);
 		if (debug)
 			cprintf("BEFORE FORK\n");
+
+        strcpy(cmd_copy, buf);
+        if (try_builtin(cmd_copy)) {
+            continue;
+        }
+
 		if ((r = fork()) < 0)
 			panic("fork: %e", r);
 		if (debug)

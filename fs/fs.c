@@ -62,7 +62,14 @@ alloc_block(void)
 	// super->s_nblocks blocks in the disk altogether.
 
 	// LAB 5: Your code here.
-	panic("alloc_block not implemented");
+	uint32_t blockno;
+	for (blockno = 0; blockno<=super->s_nblocks; blockno++){
+		if (block_is_free(blockno)){
+			bitmap[blockno / 32] &= ~(1 << (blockno % 32));
+			flush_block((void*)&bitmap[blockno/32]);
+			return blockno;
+		}
+	}
 	return -E_NO_DISK;
 }
 
@@ -135,7 +142,34 @@ static int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
        // LAB 5: Your code here.
-       panic("file_block_walk not implemented");
+	   uint32_t blockno;
+	   int r;
+	   if (NULL==f){
+		   panic("file_block_walk: null pointer");
+	   }
+	   if (filebno>=NDIRECT+NINDIRECT){
+		   return -E_INVAL;
+	   }
+	   if (filebno<NDIRECT){
+		   *ppdiskbno = &(f->f_direct[filebno]);
+		   return 0;
+	   }
+	   if (f->f_indirect == 0){
+		    if (alloc == 0){
+				return -E_NOT_FOUND;
+			}
+		   	//allocate new block
+		    if ((blockno = alloc_block())<0){
+				return -E_NO_DISK;
+			}
+			// set all entries to 0 to hold the invariant
+			memset(diskaddr(blockno), 0, BLKSIZE);
+			f->f_indirect = blockno;
+	   }
+	   uint32_t* inptr = diskaddr(f->f_indirect);
+	   *ppdiskbno = &inptr[filebno-NDIRECT];
+	   return 0;
+
 }
 
 // Set *blk to the address in memory where the filebno'th
@@ -150,7 +184,25 @@ int
 file_get_block(struct File *f, uint32_t filebno, char **blk)
 {
        // LAB 5: Your code here.
-       panic("file_get_block not implemented");
+	   int r;
+	   uint32_t newblock;
+	   uint32_t *diskbno;
+	   if (NULL==f){
+		   panic("file_get_block: null pointer");
+	   }
+       if ((r = file_block_walk(f, filebno, &diskbno, true))<0){
+		   return r;
+	   }
+	   if (*diskbno==0){
+		   //wasn't allocated yet
+		   if ((newblock = alloc_block())<0){
+			   return -E_NO_DISK;
+		   }
+		   //update f->f_indirect  
+		   *diskbno = newblock;
+	   }
+	   *blk = diskaddr(*diskbno);
+	   return 0;
 }
 
 // Try to find a file named "name" in dir.  If so, set *file to it.

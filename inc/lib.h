@@ -34,6 +34,11 @@ extern const volatile struct Env *thisenv;
 extern const volatile struct Env envs[NENV];
 extern const volatile struct PageInfo pages[];
 
+// allows getting the current env regardless of type of fork used
+#ifndef curenv
+#define curenv  (&envs[ENVX(sys_getenvid())])
+#endif
+
 // exit.c
 void	exit(void);
 

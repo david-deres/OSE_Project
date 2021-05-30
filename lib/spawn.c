@@ -301,6 +301,29 @@ static int
 copy_shared_pages(envid_t child)
 {
 	// LAB 5: Your code here.
-	return 0;
+    int pgdir_index, pgtable_index, page_number, r;
+    for (pgdir_index = 0; pgdir_index < NPDENTRIES; pgdir_index++) {
+        if ((uvpd[pgdir_index] | PTE_P | PTE_U) != uvpd[pgdir_index]) {
+            // skip unmapped pages in page directory
+            continue;
+        }
+        for (pgtable_index = 0; pgtable_index < NPTENTRIES;
+             pgtable_index++) {
+            void *page_addr = PGADDR(pgdir_index, pgtable_index, 0);
+            uint32_t page_num = PGNUM(page_addr);
+            if ((uvpt[page_num] | PTE_P | PTE_U) != uvpt[page_num]) {
+                // skip unmapped pages in each page table
+                continue;
+            }
+            if ((uvpt[page_num] & PTE_SHARE) != 0) {
+                if ((r = sys_page_map(curenv->env_id, page_addr, child,
+                                      page_addr,
+                                      uvpt[page_num] & PTE_SYSCALL)) < 0) {
+                    return r;
+                }
+            }
+        }
+    }
+    return 0;
 }
 
