@@ -217,17 +217,37 @@ trap_dispatch(struct Trapframe *tf)
 
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
-	// LAB 4: Your code here.
-    if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
-		lapic_eoi();
-		sched_yield();
-	}
-
+    //
 	// Add time tick increment to clock interrupts.
 	// Be careful! In multiprocessors, clock interrupts are
 	// triggered on every CPU.
-	// LAB 6: Your code here.
+	// LAB 4/6: Your code here.
+    if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
+		// a boolean array indicating whether each cpu should skip calling time_tick,
+        // when encountering a clock interrupt.
+        static bool skip_tick[NCPU] = {};
 
+        size_t i = 0;
+        if (!skip_tick[cpunum()]) {
+            time_tick();
+            // tell every other cpu to skip next time they encounter a tick,
+            // since that was already handled on this CPU.
+            for (i = 0; i < NCPU; i++) {
+                skip_tick[i] = true;
+            }
+
+            // if another tick is enountered on this CPU before anywhere else
+            // then thats a new tick that needs to be handled
+            skip_tick[cpunum()] = false;
+        } else {
+            // a tick was skipped, so if another one is encountered on this CPU,
+            // before anyone else, its a new tick.
+            skip_tick[cpunum()] = false;
+        }
+
+        lapic_eoi();
+		sched_yield();
+	}
 
 	// Handle keyboard and serial interrupts.
 	// LAB 5: Your code here.
