@@ -119,5 +119,31 @@ struct tx_desc tx_desc_list[TX_DESC_COUNT];
 // LAB 6: Your driver code here
 int e1000_attach(struct pci_func *pcif) {
     pci_func_enable(pcif);
+
+    e1000_reg_mem = mmio_map_region(pcif->reg_base[0], pcif->reg_size[0]);
+
+    struct PageInfo *page = page_lookup(kern_pgdir, tx_desc_list, NULL);
+
+    e1000_reg_mem->tdbal = (reg_t)page2pa(page);
+    e1000_reg_mem->tdbah = 0;
+    e1000_reg_mem->tdlen = TX_DESC_COUNT * sizeof(struct tx_desc);
+    e1000_reg_mem->tdh = 0;
+    e1000_reg_mem->tdt = 0;
+
+    e1000_reg_mem->tctl |= TCTL_EN;
+    e1000_reg_mem->tctl |= TCTL_PSP;
+    e1000_reg_mem->tctl |= TCTL_CT;
+    e1000_reg_mem->tctl |= TCTL_COLD;
+
+    e1000_reg_mem->tipg |= TIPG_IPGT;
+    e1000_reg_mem->tipg |= TIPG_IPGR1;
+    e1000_reg_mem->tipg |= TIPG_IPGR2;
+
+    int i;
+    for (i=0; i < TX_DESC_COUNT; i++) {
+        tx_desc_list[i].status = TX_STATUS_DD;
+        tx_desc_list[i].addr = 0;
+        tx_desc_list[i].cmd = 0;
+    }
     return true;
 }
