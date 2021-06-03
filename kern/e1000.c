@@ -1,3 +1,4 @@
+#include "inc/error.h"
 #include <kern/e1000.h>
 #include <kern/pmap.h>
 
@@ -146,4 +147,19 @@ int e1000_attach(struct pci_func *pcif) {
         tx_desc_list[i].cmd = 0;
     }
     return true;
+}
+
+int transmit_packet(physaddr_t addr, size_t length) {
+    struct tx_desc *tail = &tx_desc_list[e1000_reg_mem->tdt];
+    if (tail->status & TX_STATUS_DD) {
+        tail->cmd |= TX_CMD_RS;
+        tail->cmd |= TX_CMD_EOP;
+        tail->status = 0;
+        tail->addr = (uint64_t)addr;
+        tail->length = (uint16_t)length;
+        e1000_reg_mem->tdt = (e1000_reg_mem->tdt + 1) % TX_DESC_COUNT;
+        return 0;
+    } else {
+        return -E_NO_MEM;
+    }
 }
