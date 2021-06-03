@@ -837,6 +837,20 @@ void set_pages(MemoryRange range, size_t vp) {
 	}
 }
 
+// takes any virtual address, and converts it to the matching physical address
+// works only once virtual memory has been initialized
+// returns 0 if the virtual address isn't mapped
+physaddr_t va2pa(pde_t *pgdir, void *va) {
+    struct PageInfo *page = page_lookup(pgdir, va, NULL);
+    if (page == NULL) {
+        return 0;
+    }
+
+    physaddr_t page_addr = page2pa(page);
+    size_t offset = (uintptr_t)va - (uintptr_t)ROUNDDOWN(va, PGSIZE);
+    return page_addr + offset;
+}
+
 // --------------------------------------------------------------
 // Checking functions.
 // --------------------------------------------------------------
