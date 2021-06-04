@@ -124,10 +124,8 @@ int e1000_attach(struct pci_func *pcif) {
     // map network card registores to memory
     e1000_reg_mem = mmio_map_region(pcif->reg_base[0], pcif->reg_size[0]);
 
-    struct PageInfo *page = page_lookup(kern_pgdir, tx_desc_list, NULL);
-
     // setup transmission ring buffer
-    e1000_reg_mem->tdbal = (reg_t)page2pa(page);
+    e1000_reg_mem->tdbal = (reg_t)va2pa(kern_pgdir, tx_desc_list);
     e1000_reg_mem->tdbah = 0;
     e1000_reg_mem->tdlen = TX_DESC_COUNT * sizeof(struct tx_desc);
     e1000_reg_mem->tdh = 0;
