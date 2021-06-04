@@ -8,6 +8,6 @@
 
 int e1000_attach(struct pci_func *pcif);
 
-int transmit_packet(physaddr_t addr, size_t length, bool end_packet);
+int transmit_packet(void *addr, size_t length, bool end_packet);
 
 #endif	// JOS_KERN_E1000_H

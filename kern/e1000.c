@@ -1,3 +1,4 @@
+#include <inc/string.h>
 #include "inc/error.h"
 #include <kern/e1000.h>
 #include <kern/pmap.h>
@@ -5,6 +6,15 @@
 typedef uint32_t reg_t;
 
 #define TX_DESC_COUNT 16
+#define MAX_PACKET_SIZE 16288
+
+// ROUNDUP/DOWN cant be used as an expression
+#undef ROUNDDOWN
+#undef ROUNDUP
+#define ROUNDDOWN(a,n) ((uint32_t)(a) - ((uint32_t)(a) % (uint32_t)(n)))
+#define ROUNDUP(a,n) ROUNDDOWN(a + n, n)
+
+#define TX_BUFF_SIZE  ROUNDUP(MAX_PACKET_SIZE, PGSIZE)
 
 // calculates the number of unused registers,
 // between two byte offsets
@@ -116,6 +126,7 @@ struct tx_desc
 volatile struct e1000_regs *e1000_reg_mem;
 
 struct tx_desc tx_desc_list[TX_DESC_COUNT];
+uint8_t tx_buffers[TX_DESC_COUNT][TX_BUFF_SIZE];
 
 // LAB 6: Your driver code here
 int e1000_attach(struct pci_func *pcif) {
@@ -156,15 +167,17 @@ int e1000_attach(struct pci_func *pcif) {
 // if end_packet is true, interprets the incoming data as the last part of the packet
 // and transmits it over the network.
 // returns 0 on success, -E__NO_MEM if the transmit queue is full.
-int transmit_packet(physaddr_t addr, size_t length, bool end_packet) {
-    struct tx_desc *tail = &tx_desc_list[e1000_reg_mem->tdt];
+int transmit_packet(void *addr, size_t length, bool end_packet) {
+    size_t cur_index = e1000_reg_mem->tdt;
+    struct tx_desc *tail = &tx_desc_list[cur_index];
     if (tail->status & TX_STATUS_DD) {
+        memcpy(tx_buffers[cur_index], addr, length);
         tail->cmd |= TX_CMD_RS;
         tail->cmd |= end_packet ? TX_CMD_EOP : 0;
         tail->status = 0;
-        tail->addr = (uint64_t)addr;
+        tail->addr = (uint64_t)va2pa(kern_pgdir, tx_buffers[cur_index]);
         tail->length = (uint16_t)length;
-        e1000_reg_mem->tdt = (e1000_reg_mem->tdt + 1) % TX_DESC_COUNT;
+        e1000_reg_mem->tdt = (cur_index + 1) % TX_DESC_COUNT;
         return 0;
     } else {
         return -E_NO_MEM;
