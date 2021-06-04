@@ -26,6 +26,8 @@ typedef uint32_t reg_t;
 
 #define E1000_CTRL      0x00000
 #define E1000_STATUS    0x00008
+#define E1000_IMS       0x000D0
+#define E1000_IMC       0x000D8
 #define E1000_TCTL      0x00400
 #define E1000_TIPG      0x00410
 #define E1000_TDBAL     0x03800
@@ -79,11 +81,21 @@ typedef uint32_t reg_t;
 #define TX_CMD_VLE       (1 << 6)    // VLAN Packet Enable
 #define TX_CMD_IDE       (1 << 7)    // Interrupt Delay Enable
 
+// Interrupt Mask
+#define INT_TXDW        1           // Transmit Descriptor Written Back
+#define INT_TXQE        (1 << 1)    // Transmit Queue Empty
+#define RXDMT0          (1 << 4)    // Receive Descriptor Minimum Threshold hit
+#define SRPD            (1 << 16)   // Small Receive Packet Detection
+
 struct e1000_regs {
     // Device Control - RW
     ADD_REG(ctrl, E1000_CTRL, E1000_STATUS)
     // Device Status - RO
-    ADD_REG(status, E1000_STATUS, E1000_TCTL)
+    ADD_REG(status, E1000_STATUS, E1000_IMS)
+    // Interrupt Mask Set - RW
+    ADD_REG(ims, E1000_IMS, E1000_IMC)
+    // Interrupt Mask Clear - WO
+    ADD_REG(imc, E1000_IMC, E1000_TCTL)
     // TX Control - RW
     ADD_REG(tctl, E1000_TCTL, E1000_TIPG)
     // TX Inter-packet gap -RW
@@ -159,6 +171,7 @@ int e1000_attach(struct pci_func *pcif) {
         tx_desc_list[i].addr = 0;
         tx_desc_list[i].cmd = 0;
     }
+
     return true;
 }
 
