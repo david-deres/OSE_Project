@@ -8,8 +8,10 @@
 
 int e1000_attach(struct pci_func *pcif);
 
-// takes an address to the packet data, and transmits it to the network card
-// returns 0 on success, and a negative value for an error
-int transmit_packet(physaddr_t addr, size_t length);
+// takes an address to the packet data, and builds up a packet from it
+// if end_packet is true, interprets the incoming data as the last part of the packet
+// and transmits it over the network.
+// returns 0 on success, -E__NO_MEM if the transmit queue is full.
+int transmit_packet(physaddr_t addr, size_t length, bool end_packet);
 
 #endif	// JOS_KERN_E1000_H

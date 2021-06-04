@@ -149,11 +149,11 @@ int e1000_attach(struct pci_func *pcif) {
     return true;
 }
 
-int transmit_packet(physaddr_t addr, size_t length) {
+int transmit_packet(physaddr_t addr, size_t length, bool end_packet) {
     struct tx_desc *tail = &tx_desc_list[e1000_reg_mem->tdt];
     if (tail->status & TX_STATUS_DD) {
         tail->cmd |= TX_CMD_RS;
-        tail->cmd |= TX_CMD_EOP;
+        tail->cmd |= end_packet ? TX_CMD_EOP : 0;
         tail->status = 0;
         tail->addr = (uint64_t)addr;
         tail->length = (uint16_t)length;
