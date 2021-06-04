@@ -6,7 +6,6 @@
 typedef uint32_t reg_t;
 
 #define TX_DESC_COUNT 16
-#define MAX_PACKET_SIZE 16288
 
 // ROUNDUP/DOWN cant be used as an expression
 #undef ROUNDDOWN

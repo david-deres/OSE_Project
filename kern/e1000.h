@@ -2,6 +2,7 @@
 #define JOS_KERN_E1000_H
 
 #include <kern/pci.h>
+#include <inc/ns.h>
 
 #define E1000_VENDOR_ID 0x8086
 #define E1000_PRODUCT_ID 0x100E

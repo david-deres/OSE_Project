@@ -12,6 +12,8 @@ struct jif_pkt {
 	char jp_data[0];
 };
 
+#define MAX_PACKET_SIZE 16288
+
 // Definitions for requests from clients to network server
 enum {
 	// The following messages pass a page containing an Nsipc.
