@@ -154,6 +154,10 @@ int e1000_attach(struct pci_func *pcif) {
     return true;
 }
 
+// takes an address to the packet data, and builds up a packet from it
+// if end_packet is true, interprets the incoming data as the last part of the packet
+// and transmits it over the network.
+// returns 0 on success, -E__NO_MEM if the transmit queue is full.
 int transmit_packet(physaddr_t addr, size_t length, bool end_packet) {
     struct tx_desc *tail = &tx_desc_list[e1000_reg_mem->tdt];
     if (tail->status & TX_STATUS_DD) {
