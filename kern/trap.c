@@ -14,6 +14,7 @@
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
 #include <kern/time.h>
+#include <kern/e1000.h>
 
 static struct Taskstate ts;
 
@@ -261,6 +262,12 @@ trap_dispatch(struct Trapframe *tf)
 		serial_intr();
 		sched_yield();
 	}
+
+    if (e1000_handler(tf->tf_trapno)) {
+        irq_eoi();
+        lapic_eoi();
+        sched_yield();
+    }
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);

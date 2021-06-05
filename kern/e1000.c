@@ -183,6 +183,7 @@ struct rx_desc
 } __attribute__ ((packed));
 
 volatile struct e1000_regs *e1000_reg_mem;
+int irq_line;
 
 struct tx_desc tx_desc_list[TX_DESC_COUNT];
 struct PageInfo *tx_pages[TX_DESC_COUNT];
@@ -283,6 +284,8 @@ int e1000_attach(struct pci_func *pcif) {
     int i = e1000_reg_mem->icr;
     e1000_reg_mem->ims |= INT_TXQE;
 
+    irq_line = pcif->irq_line;
+
     return true;
 }
 
@@ -311,4 +314,17 @@ int transmit_packet(void *addr, size_t length, bool end_packet) {
     } else {
         return -E_NO_MEM;
     }
+}
+
+// handles a trap originatng from the e1000 network card
+// ignores other types of traps
+// returns true if the trap was handled
+bool e1000_handler(int trapno) {
+    if (trapno != IRQ_OFFSET + irq_line) {
+        return false;
+    }
+
+    reg_t cause = e1000_reg_mem->icr;
+
+    return true;
 }
