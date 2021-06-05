@@ -6,6 +6,7 @@
 typedef uint32_t reg_t;
 
 #define TX_DESC_COUNT 16
+#define RX_DESC_COUNT 128
 
 // ROUNDUP/DOWN cant be used as an expression
 #undef ROUNDDOWN
@@ -14,6 +15,7 @@ typedef uint32_t reg_t;
 #define ROUNDUP(a,n) ROUNDDOWN(a + n - 1, n)
 
 #define TX_BUFF_SIZE  ROUNDUP(MAX_PACKET_SIZE, PGSIZE)
+#define RX_BUFF_SIZE 0x4000
 
 // calculates the number of unused registers,
 // between two byte offsets
@@ -28,13 +30,35 @@ typedef uint32_t reg_t;
 #define E1000_STATUS    0x00008
 #define E1000_IMS       0x000D0
 #define E1000_IMC       0x000D8
+#define E1000_RCTL      0x00100
 #define E1000_TCTL      0x00400
 #define E1000_TIPG      0x00410
+#define E1000_RDBAL     0x02800
+#define E1000_RDBAH     0x02804
+#define E1000_RDLEN     0x02808
+#define E1000_RDH       0x02810
+#define E1000_RDT       0x02818
 #define E1000_TDBAL     0x03800
 #define E1000_TDBAH     0x03804
 #define E1000_TDLEN     0x03808
 #define E1000_TDH       0x03810
 #define E1000_TDT       0x03818
+#define E1000_MTA       0x05200
+#define E1000_RAL0      0x05400
+#define E1000_RAH0      0x05404
+
+// RCTL Register
+#define RCTL_EN             (1 << 1)   // Receiver Enable
+#define RCTL_BAM            (1 << 15)  // Broadcast Accept Mode
+#define RCTL_BSIZE_shift    16         // Receive Buffer Size
+#define RCTL_BSEX           (1 << 25)  // Buffer Size Extension
+
+// RCTL Register setup values
+#define RCTL_BSIZE       (1 << RCTL_BSIZE_shift) // matches RECV_BUFFER_SIZE
+                                                 // when BSEX = 1
+// Receive Address Registers
+#define RA_HIGH_MASK        0xFFFF     // Mask bits for high receive address
+#define RA_HIGH_AV          (1 << 31)  // Address Valid
 
 // TCTL Register
 #define TCTL_EN         (1 << 1)    // Transmit Enable
@@ -95,11 +119,23 @@ struct e1000_regs {
     // Interrupt Mask Set - RW
     ADD_REG(ims, E1000_IMS, E1000_IMC)
     // Interrupt Mask Clear - WO
-    ADD_REG(imc, E1000_IMC, E1000_TCTL)
+    ADD_REG(imc, E1000_IMC, E1000_RCTL)
+    // RX Control - RW
+    ADD_REG(rctl, E1000_RCTL, E1000_TCTL)
     // TX Control - RW
     ADD_REG(tctl, E1000_TCTL, E1000_TIPG)
     // TX Inter-packet gap -RW
-    ADD_REG(tipg, E1000_TIPG, E1000_TDBAL)
+    ADD_REG(tipg, E1000_TIPG, E1000_RDBAL)
+    // RX Descriptor Base Address Low - RW
+    ADD_REG(rdbal, E1000_RDBAL, E1000_RDBAH)
+    // RX Descriptor Base Address High - RW
+    ADD_REG(rdbah, E1000_RDBAH, E1000_RDLEN)
+    // RX Descriptor Length - RW
+    ADD_REG(rdlen, E1000_RDLEN, E1000_RDH)
+    // RX Descriptor Head - RW
+    ADD_REG(rdh, E1000_RDH, E1000_RDT)
+    // RX Descriptor Tail - RW
+    ADD_REG(rdt, E1000_RDT, E1000_TDBAL)
     // TX Descriptor Base Address Low - RW
     ADD_REG(tdbal, E1000_TDBAL, E1000_TDBAH)
     // TX Descriptor Base Address High - RW
@@ -109,7 +145,13 @@ struct e1000_regs {
     // TX Descriptor Head - RW
     ADD_REG(tdh, E1000_TDH, E1000_TDT)
     // TX Descripotr Tail - RW
-    ADD_REG(tdt, E1000_TDT, E1000_TDT + sizeof(reg_t))
+    ADD_REG(tdt, E1000_TDT, E1000_MTA)
+    // Multicast Table Array - RW Array
+    ADD_REG(mta, E1000_MTA, E1000_RAL0)
+    // Receive Address Low - RW
+    ADD_REG(ral0, E1000_RAL0, E1000_RAH0)
+    // Receive Address High - RW
+    ADD_REG(rah0, E1000_RAH0, E1000_RAH0 + sizeof(reg_t))
 } __attribute__ ((packed));
 
 struct tx_status {
