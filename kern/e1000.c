@@ -42,6 +42,7 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define E1000_TDLEN     0x03808
 #define E1000_TDH       0x03810
 #define E1000_TDT       0x03818
+#define E1000_TIDV      0x03820
 #define E1000_MTA       0x05200
 #define E1000_RAL0      0x05400
 #define E1000_RAH0      0x05404
@@ -152,7 +153,9 @@ struct e1000_regs {
     // TX Descriptor Head - RW
     ADD_REG(tdh, E1000_TDH, E1000_TDT)
     // TX Descripotr Tail - RW
-    ADD_REG(tdt, E1000_TDT, E1000_MTA)
+    ADD_REG(tdt, E1000_TDT, E1000_TIDV)
+    // TX Interrupt Delay Value - RW
+    ADD_REG(tidv, E1000_TIDV, E1000_MTA)
     // Multicast Table Array - RW Array
     ADD_REG(mta, E1000_MTA, E1000_RAL0)
     // Receive Address Low - RW
@@ -209,6 +212,9 @@ void setup_transmission() {
     e1000_reg_mem->tipg |= TIPG_IPGT;
     e1000_reg_mem->tipg |= TIPG_IPGR1;
     e1000_reg_mem->tipg |= TIPG_IPGR2;
+
+    // setup transmission interrupt timer
+    e1000_reg_mem->tidv = 10;
 
     int i;
     // mark transmission descriptors as available
@@ -273,7 +279,7 @@ int e1000_attach(struct pci_func *pcif) {
     // setup interrupts
     irq_setmask_8259A(irq_mask_8259A & ~(1 << pcif->irq_line));
     int i = e1000_reg_mem->icr;
-    e1000_reg_mem->ims |= INT_TXQE;
+    e1000_reg_mem->ims |= INT_TXDW;
 
     irq_line = pcif->irq_line;
 
@@ -307,6 +313,7 @@ int transmit_packet(void *addr, size_t length) {
 
         tail->cmd |= TX_CMD_RS;
         tail->cmd |= TX_CMD_EOP;
+        tail->cmd |= TX_CMD_IDE;
         tail->status = 0;
         tail->addr = (uint64_t)(page2pa(tx_pages[cur_index]) + offset);
         tail->length = (uint16_t)length;
