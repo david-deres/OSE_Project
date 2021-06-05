@@ -11,7 +11,7 @@ typedef uint32_t reg_t;
 #undef ROUNDDOWN
 #undef ROUNDUP
 #define ROUNDDOWN(a,n) ((uint32_t)(a) - ((uint32_t)(a) % (uint32_t)(n)))
-#define ROUNDUP(a,n) ROUNDDOWN(a + n, n)
+#define ROUNDUP(a,n) ROUNDDOWN(a + n - 1, n)
 
 #define TX_BUFF_SIZE  ROUNDUP(MAX_PACKET_SIZE, PGSIZE)
 
