@@ -186,7 +186,7 @@ volatile struct e1000_regs *e1000_reg_mem;
 int irq_line;
 
 struct tx_desc tx_desc_list[TX_DESC_COUNT];
-struct PageInfo *tx_pages[TX_DESC_COUNT];
+struct PageInfo *tx_pages[TX_DESC_COUNT] = {};
 
 struct rx_desc rx_desc_list[RX_DESC_COUNT];
 struct PageInfo *rx_pages[RX_DESC_COUNT];
@@ -210,16 +210,7 @@ void setup_transmission() {
     e1000_reg_mem->tipg |= TIPG_IPGR1;
     e1000_reg_mem->tipg |= TIPG_IPGR2;
 
-    // preallocate pages for storing transmission data
     int i;
-    for (i = 0; i < TX_DESC_COUNT; i++) {
-        tx_pages[i] = page_alloc(ALLOC_ZERO);
-        if (tx_pages[i] == NULL) {
-            panic("unable to allocate pages for network transmission");
-        }
-        tx_pages[i]->pp_ref += 1;
-    }
-
     // mark transmission descriptors as available
     for (i=0; i < TX_DESC_COUNT; i++) {
         tx_desc_list[i].status = TX_STATUS_DD;
@@ -295,19 +286,29 @@ static void write_to_page(void *va, struct PageInfo *page, size_t length) {
     page_remove(curenv->env_pgdir, UTEMP);
 }
 
-// takes an address to the packet data, and builds up a packet from it
-// if end_packet is true, interprets the incoming data as the last part of the packet
-// and transmits it over the network.
+// takes an address to the packet data, and transmits it over the network.
 // returns 0 on success, -E__NO_MEM if the transmit queue is full.
-int transmit_packet(void *addr, size_t length, bool end_packet) {
+int transmit_packet(void *addr, size_t length) {
     size_t cur_index = e1000_reg_mem->tdt;
     struct tx_desc *tail = &tx_desc_list[cur_index];
     if (tail->status & TX_STATUS_DD) {
-        write_to_page(addr, tx_pages[cur_index], length);
+
+        // replace existing page in the current slot with the new one
+        if (tx_pages[cur_index] != NULL) {
+            // ensure the page gets recycpled if every env unmapped it
+            page_decref(tx_pages[cur_index]);
+        }
+        tx_pages[cur_index] = page_lookup(curenv->env_pgdir, addr, NULL);
+        // ensure page doesn't get recycled when unmapped in userspace
+        tx_pages[cur_index]->pp_ref += 1;
+
+        // read the packet starting from the correct offset into the page
+        size_t offset = addr - ROUNDDOWN(addr, PGSIZE);
+
         tail->cmd |= TX_CMD_RS;
-        tail->cmd |= end_packet ? TX_CMD_EOP : 0;
+        tail->cmd |= TX_CMD_EOP;
         tail->status = 0;
-        tail->addr = (uint64_t)page2pa(tx_pages[cur_index]);
+        tail->addr = (uint64_t)(page2pa(tx_pages[cur_index]) + offset);
         tail->length = (uint16_t)length;
         e1000_reg_mem->tdt = (cur_index + 1) % TX_DESC_COUNT;
         return 0;

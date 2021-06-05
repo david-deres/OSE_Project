@@ -1,4 +1,5 @@
 #include "ns.h"
+#include <inc/lib.h>
 
 extern union Nsipc nsipcbuf;
 
@@ -39,5 +40,6 @@ output(envid_t ns_envid)
 		}
 
         send_packet(nsipcbuf.pkt.jp_data, nsipcbuf.pkt.jp_len);
+        sys_page_unmap(curenv->env_id, &nsipcbuf.pkt);
     }
 }

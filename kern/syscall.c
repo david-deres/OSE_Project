@@ -473,22 +473,19 @@ sys_time_msec(void)
 // Sends the given number of bytes from a buffer over the network.
 // Return 0 on success, < 0 on error.  Errors are:
 //     -E_INVAL if the env doesn't have permission to read the memory,
-//              or the length is greater than MAX_PACKET_SIZE
+//              or the [va,va+length] doesnt fit a single page
 //     -E_NO_MEM if the transmission queue is full
 int32_t sys_net_try_send(void *va, size_t length) {
     if (user_mem_check(curenv, va, length, PTE_P | PTE_U) != 0) {
         return -E_INVAL;
     }
-    if (length > MAX_PACKET_SIZE) {
+    uintptr_t page_start = ROUNDDOWN((uintptr_t)va, PGSIZE);
+    uintptr_t page_end = ROUNDDOWN((uintptr_t)va + length, PGSIZE);
+    if (page_start != page_end) {
         return -E_INVAL;
     }
 
-    size_t bytes_sent = 0;
-    int r = 0;
-    for (bytes_sent = 0; bytes_sent < length; bytes_sent += PGSIZE) {
-        size_t remains = length - bytes_sent;
-        r = transmit_packet(va, MIN(remains, PGSIZE), remains <= PGSIZE);
-    }
+    int r = transmit_packet(va, length);
     return r;
 }
 
