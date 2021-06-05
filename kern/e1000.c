@@ -13,14 +13,6 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define TX_DESC_COUNT 16
 #define RX_DESC_COUNT 128
 
-// ROUNDUP/DOWN cant be used as an expression
-#undef ROUNDDOWN
-#undef ROUNDUP
-#define ROUNDDOWN(a,n) ((uint32_t)(a) - ((uint32_t)(a) % (uint32_t)(n)))
-#define ROUNDUP(a,n) ROUNDDOWN(a + n - 1, n)
-
-#define RX_BUFF_SIZE 0x4000
-
 // calculates the number of unused registers,
 // between two byte offsets
 #define UNUSED_BETWEEN(REG1, REG2) ((REG2 - REG1 - sizeof(reg_t)) / sizeof(reg_t))
@@ -58,8 +50,8 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define RCTL_BSEX           (1 << 25)  // Buffer Size Extension
 
 // RCTL Register setup values
-#define RCTL_BSIZE       (1 << RCTL_BSIZE_shift) // matches RECV_BUFFER_SIZE
-                                                 // when BSEX = 1
+#define RCTL_BSIZE       0
+
 // Receive Address Registers
 #define RA_HIGH_MASK        0xFFFF     // Mask bits for high receive address
 #define RA_HIGH_AV          (1 << 31)  // Address Valid
@@ -188,8 +180,8 @@ volatile struct e1000_regs *e1000_reg_mem;
 struct tx_desc tx_desc_list[TX_DESC_COUNT];
 struct PageInfo *tx_pages[TX_DESC_COUNT];
 
-// struct rx_desc rx_desc_list[RX_DESC_COUNT];
-// uint8_t rx_buffers[RX_DESC_COUNT][RX_BUFF_SIZE];
+struct rx_desc rx_desc_list[RX_DESC_COUNT];
+struct PageInfo *rx_pages[RX_DESC_COUNT];
 
 void setup_transmission() {
     // setup transmission ring buffer
@@ -228,7 +220,6 @@ void setup_transmission() {
     }
 }
 
-/*
 void setup_reception() {
     // setup receive MAC address
     e1000_reg_mem->ral0 = MAC_ADDR_LOW;
@@ -246,11 +237,20 @@ void setup_reception() {
     e1000_reg_mem->rdh = 0;
     e1000_reg_mem->rdt = RX_DESC_COUNT - 1;
 
-    // initialize reception descriptors and mark as available
+    // preallocate pages for storing reception data
     int i;
+    for (i = 0; i < RX_DESC_COUNT; i++) {
+        rx_pages[i] = page_alloc(ALLOC_ZERO);
+        if (rx_pages[i] == NULL) {
+            panic("unable to allocate pages for network reception");
+        }
+        rx_pages[i]->pp_ref += 1;
+    }
+
+    // initialize reception descriptors
     for (i=0; i < RX_DESC_COUNT; i++) {
-        rx_desc_list[i].addr = (uint64_t)va2pa(kern_pgdir, rx_buffers[i]);
-        rx_desc_list[i].length = RX_DESC_COUNT;
+        rx_desc_list[i].addr = (uint64_t)page2pa(rx_pages[i]);
+        rx_desc_list[i].length = 0;
         rx_desc_list[i].status = 0;
         rx_desc_list[i].errors = 0;
     }
@@ -258,10 +258,8 @@ void setup_reception() {
     // setup reception settings
     e1000_reg_mem->rctl |= RCTL_EN;
     e1000_reg_mem->rctl |= RCTL_BAM;
-    e1000_reg_mem->rctl |= RCTL_BSEX;
     e1000_reg_mem->rctl |= RCTL_BSIZE;
 }
-*/
 
 // LAB 6: Your driver code here
 int e1000_attach(struct pci_func *pcif) {
@@ -271,7 +269,7 @@ int e1000_attach(struct pci_func *pcif) {
     e1000_reg_mem = mmio_map_region(pcif->reg_base[0], pcif->reg_size[0]);
 
     setup_transmission();
-    // setup_reception();
+    setup_reception();
 
     return true;
 }
