@@ -181,13 +181,7 @@ volatile struct e1000_regs *e1000_reg_mem;
 struct tx_desc tx_desc_list[TX_DESC_COUNT];
 uint8_t tx_buffers[TX_DESC_COUNT][TX_BUFF_SIZE];
 
-// LAB 6: Your driver code here
-int e1000_attach(struct pci_func *pcif) {
-    pci_func_enable(pcif);
-
-    // map network card registores to memory
-    e1000_reg_mem = mmio_map_region(pcif->reg_base[0], pcif->reg_size[0]);
-
+void setup_transmission() {
     // setup transmission ring buffer
     e1000_reg_mem->tdbal = (reg_t)va2pa(kern_pgdir, tx_desc_list);
     e1000_reg_mem->tdbah = 0;
@@ -213,6 +207,16 @@ int e1000_attach(struct pci_func *pcif) {
         tx_desc_list[i].addr = 0;
         tx_desc_list[i].cmd = 0;
     }
+}
+
+// LAB 6: Your driver code here
+int e1000_attach(struct pci_func *pcif) {
+    pci_func_enable(pcif);
+
+    // map network card registores to memory
+    e1000_reg_mem = mmio_map_region(pcif->reg_base[0], pcif->reg_size[0]);
+
+    setup_transmission();
 
     return true;
 }
