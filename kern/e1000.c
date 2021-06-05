@@ -5,6 +5,10 @@
 
 typedef uint32_t reg_t;
 
+// hard-coded mac address
+const uint32_t MAC_ADDR_LOW = 0x12005452;
+const uint32_t MAC_ADDR_HIGH = 0x5634;
+
 #define TX_DESC_COUNT 16
 #define RX_DESC_COUNT 128
 
@@ -59,6 +63,10 @@ typedef uint32_t reg_t;
 // Receive Address Registers
 #define RA_HIGH_MASK        0xFFFF     // Mask bits for high receive address
 #define RA_HIGH_AV          (1 << 31)  // Address Valid
+
+// Reception Status
+#define RX_STATUS_DD    1           // Descriptor Done
+#define RX_STATUS_EOP   (1 << 1)    // End of Packet
 
 // TCTL Register
 #define TCTL_EN         (1 << 1)    // Transmit Enable
@@ -165,10 +173,23 @@ struct tx_desc
         uint16_t special;
 } __attribute__ ((packed));
 
+struct rx_desc
+{
+        uint64_t addr;
+        uint16_t length;
+        uint16_t packet_checksum;
+        uint8_t status;
+        uint8_t errors;
+        uint16_t special;
+} __attribute__ ((packed));
+
 volatile struct e1000_regs *e1000_reg_mem;
 
 struct tx_desc tx_desc_list[TX_DESC_COUNT];
 uint8_t tx_buffers[TX_DESC_COUNT][TX_BUFF_SIZE];
+
+// struct rx_desc rx_desc_list[RX_DESC_COUNT];
+// uint8_t rx_buffers[RX_DESC_COUNT][RX_BUFF_SIZE];
 
 void setup_transmission() {
     // setup transmission ring buffer
@@ -198,6 +219,41 @@ void setup_transmission() {
     }
 }
 
+/*
+void setup_reception() {
+    // setup receive MAC address
+    e1000_reg_mem->ral0 = MAC_ADDR_LOW;
+    e1000_reg_mem->rah0 &= ~RA_HIGH_MASK;
+    e1000_reg_mem->rah0 |= RA_HIGH_MASK & MAC_ADDR_HIGH;
+    e1000_reg_mem->rah0 |= RA_HIGH_AV;
+
+    // setup Multicast Table Array
+    e1000_reg_mem->mta = 0;
+
+    // setup reception ring buffer
+    e1000_reg_mem->rdbal = (reg_t)va2pa(kern_pgdir, rx_desc_list);
+    e1000_reg_mem->rdbah = 0;
+    e1000_reg_mem->rdlen = RX_DESC_COUNT * sizeof(struct rx_desc);
+    e1000_reg_mem->rdh = 0;
+    e1000_reg_mem->rdt = RX_DESC_COUNT - 1;
+
+    // initialize reception descriptors and mark as available
+    int i;
+    for (i=0; i < RX_DESC_COUNT; i++) {
+        rx_desc_list[i].addr = (uint64_t)va2pa(kern_pgdir, rx_buffers[i]);
+        rx_desc_list[i].length = RX_DESC_COUNT;
+        rx_desc_list[i].status = 0;
+        rx_desc_list[i].errors = 0;
+    }
+
+    // setup reception settings
+    e1000_reg_mem->rctl |= RCTL_EN;
+    e1000_reg_mem->rctl |= RCTL_BAM;
+    e1000_reg_mem->rctl |= RCTL_BSEX;
+    e1000_reg_mem->rctl |= RCTL_BSIZE;
+}
+*/
+
 // LAB 6: Your driver code here
 int e1000_attach(struct pci_func *pcif) {
     pci_func_enable(pcif);
@@ -206,6 +262,7 @@ int e1000_attach(struct pci_func *pcif) {
     e1000_reg_mem = mmio_map_region(pcif->reg_base[0], pcif->reg_size[0]);
 
     setup_transmission();
+    // setup_reception();
 
     return true;
 }
