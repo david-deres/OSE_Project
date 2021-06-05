@@ -154,17 +154,6 @@ struct e1000_regs {
     ADD_REG(rah0, E1000_RAH0, E1000_RAH0 + sizeof(reg_t))
 } __attribute__ ((packed));
 
-struct tx_status {
-    // Descriptor Done
-    uint8_t dd : 1;
-    // Excess Collisions
-    uint8_t ec : 1;
-    // Late Collision
-    uint8_t lc : 1;
-    // Transmit Underrun
-    uint8_t tu : 1;
-};
-
 struct tx_desc
 {
         uint64_t addr;
