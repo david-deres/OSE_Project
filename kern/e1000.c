@@ -3,6 +3,7 @@
 #include <kern/env.h>
 #include <kern/e1000.h>
 #include <kern/pmap.h>
+#include <kern/picirq.h>
 
 typedef uint32_t reg_t;
 
@@ -24,6 +25,7 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 
 #define E1000_CTRL      0x00000
 #define E1000_STATUS    0x00008
+#define E1000_ICR       0x000C0
 #define E1000_IMS       0x000D0
 #define E1000_IMC       0x000D8
 #define E1000_RCTL      0x00100
@@ -109,14 +111,16 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 // Interrupt Mask
 #define INT_TXDW        1           // Transmit Descriptor Written Back
 #define INT_TXQE        (1 << 1)    // Transmit Queue Empty
-#define RXDMT0          (1 << 4)    // Receive Descriptor Minimum Threshold hit
-#define SRPD            (1 << 16)   // Small Receive Packet Detection
+#define INT_RXDMT0      (1 << 4)    // Receive Descriptor Minimum Threshold hit
+#define INT_SRPD        (1 << 16)   // Small Receive Packet Detection
 
 struct e1000_regs {
     // Device Control - RW
     ADD_REG(ctrl, E1000_CTRL, E1000_STATUS)
     // Device Status - RO
-    ADD_REG(status, E1000_STATUS, E1000_IMS)
+    ADD_REG(status, E1000_STATUS, E1000_ICR)
+    // Interrupt Cause Read - R/clr
+    ADD_REG(icr, E1000_ICR, E1000_IMS)
     // Interrupt Mask Set - RW
     ADD_REG(ims, E1000_IMS, E1000_IMC)
     // Interrupt Mask Clear - WO
@@ -273,6 +277,11 @@ int e1000_attach(struct pci_func *pcif) {
 
     setup_transmission();
     setup_reception();
+
+    // setup interrupts
+    irq_setmask_8259A(irq_mask_8259A & ~(1 << pcif->irq_line));
+    int i = e1000_reg_mem->icr;
+    e1000_reg_mem->ims |= INT_TXQE;
 
     return true;
 }
