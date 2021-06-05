@@ -34,6 +34,7 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define E1000_RDLEN     0x02808
 #define E1000_RDH       0x02810
 #define E1000_RDT       0x02818
+#define E1000_RSRPD     0x02C00
 #define E1000_TDBAL     0x03800
 #define E1000_TDBAH     0x03804
 #define E1000_TDLEN     0x03808
@@ -135,7 +136,9 @@ struct e1000_regs {
     // RX Descriptor Head - RW
     ADD_REG(rdh, E1000_RDH, E1000_RDT)
     // RX Descriptor Tail - RW
-    ADD_REG(rdt, E1000_RDT, E1000_TDBAL)
+    ADD_REG(rdt, E1000_RDT, E1000_RSRPD)
+    // RX Small Packet Detect - RW
+    ADD_REG(rsrpd, E1000_RSRPD, E1000_TDBAL)
     // TX Descriptor Base Address Low - RW
     ADD_REG(tdbal, E1000_TDBAL, E1000_TDBAH)
     // TX Descriptor Base Address High - RW
