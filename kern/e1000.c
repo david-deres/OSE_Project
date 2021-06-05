@@ -1,5 +1,6 @@
 #include <inc/string.h>
-#include "inc/error.h"
+#include <inc/error.h>
+#include <kern/env.h>
 #include <kern/e1000.h>
 #include <kern/pmap.h>
 
@@ -18,7 +19,6 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define ROUNDDOWN(a,n) ((uint32_t)(a) - ((uint32_t)(a) % (uint32_t)(n)))
 #define ROUNDUP(a,n) ROUNDDOWN(a + n - 1, n)
 
-#define TX_BUFF_SIZE PGSIZE
 #define RX_BUFF_SIZE 0x4000
 
 // calculates the number of unused registers,
@@ -186,9 +186,7 @@ struct rx_desc
 volatile struct e1000_regs *e1000_reg_mem;
 
 struct tx_desc tx_desc_list[TX_DESC_COUNT];
-
-__attribute__((__aligned__(PGSIZE)))
-uint8_t tx_buffers[TX_DESC_COUNT][TX_BUFF_SIZE];
+struct PageInfo *tx_pages[TX_DESC_COUNT];
 
 // struct rx_desc rx_desc_list[RX_DESC_COUNT];
 // uint8_t rx_buffers[RX_DESC_COUNT][RX_BUFF_SIZE];
@@ -212,8 +210,17 @@ void setup_transmission() {
     e1000_reg_mem->tipg |= TIPG_IPGR1;
     e1000_reg_mem->tipg |= TIPG_IPGR2;
 
-    // mark transmission descriptors as available
+    // preallocate pages for storing transmission data
     int i;
+    for (i = 0; i < TX_DESC_COUNT; i++) {
+        tx_pages[i] = page_alloc(ALLOC_ZERO);
+        if (tx_pages[i] == NULL) {
+            panic("unable to allocate pages for network transmission");
+        }
+        tx_pages[i]->pp_ref += 1;
+    }
+
+    // mark transmission descriptors as available
     for (i=0; i < TX_DESC_COUNT; i++) {
         tx_desc_list[i].status = TX_STATUS_DD;
         tx_desc_list[i].addr = 0;
@@ -269,6 +276,12 @@ int e1000_attach(struct pci_func *pcif) {
     return true;
 }
 
+static void write_to_page(void *va, struct PageInfo *page, size_t length) {
+    page_insert(curenv->env_pgdir, page, UTEMP, PTE_W);
+    memcpy(UTEMP, va, length);
+    page_remove(curenv->env_pgdir, UTEMP);
+}
+
 // takes an address to the packet data, and builds up a packet from it
 // if end_packet is true, interprets the incoming data as the last part of the packet
 // and transmits it over the network.
@@ -277,11 +290,11 @@ int transmit_packet(void *addr, size_t length, bool end_packet) {
     size_t cur_index = e1000_reg_mem->tdt;
     struct tx_desc *tail = &tx_desc_list[cur_index];
     if (tail->status & TX_STATUS_DD) {
-        memcpy(tx_buffers[cur_index], addr, length);
+        write_to_page(addr, tx_pages[cur_index], length);
         tail->cmd |= TX_CMD_RS;
         tail->cmd |= end_packet ? TX_CMD_EOP : 0;
         tail->status = 0;
-        tail->addr = (uint64_t)va2pa(kern_pgdir, tx_buffers[cur_index]);
+        tail->addr = (uint64_t)page2pa(tx_pages[cur_index]);
         tail->length = (uint16_t)length;
         e1000_reg_mem->tdt = (cur_index + 1) % TX_DESC_COUNT;
         return 0;
