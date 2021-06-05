@@ -26,6 +26,7 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define E1000_CTRL      0x00000
 #define E1000_STATUS    0x00008
 #define E1000_ICR       0x000C0
+#define E1000_ICS       0x000C8
 #define E1000_IMS       0x000D0
 #define E1000_IMC       0x000D8
 #define E1000_RCTL      0x00100
@@ -121,7 +122,9 @@ struct e1000_regs {
     // Device Status - RO
     ADD_REG(status, E1000_STATUS, E1000_ICR)
     // Interrupt Cause Read - R/clr
-    ADD_REG(icr, E1000_ICR, E1000_IMS)
+    ADD_REG(icr, E1000_ICR, E1000_ICS)
+    // Interrupt Cause Set - WO
+    ADD_REG(ics, E1000_ICS, E1000_IMS)
     // Interrupt Mask Set - RW
     ADD_REG(ims, E1000_IMS, E1000_IMC)
     // Interrupt Mask Clear - WO
