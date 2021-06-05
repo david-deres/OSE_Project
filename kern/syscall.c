@@ -482,7 +482,13 @@ int32_t sys_net_try_send(void *va, size_t length) {
     if (length > MAX_PACKET_SIZE) {
         return -E_INVAL;
     }
-    int r = transmit_packet(va, length, true);
+
+    size_t bytes_sent = 0;
+    int r = 0;
+    for (bytes_sent = 0; bytes_sent < length; bytes_sent += PGSIZE) {
+        size_t remains = length - bytes_sent;
+        r = transmit_packet(va, MIN(remains, PGSIZE), remains <= PGSIZE);
+    }
     return r;
 }
 

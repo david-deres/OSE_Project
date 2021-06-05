@@ -18,7 +18,7 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define ROUNDDOWN(a,n) ((uint32_t)(a) - ((uint32_t)(a) % (uint32_t)(n)))
 #define ROUNDUP(a,n) ROUNDDOWN(a + n - 1, n)
 
-#define TX_BUFF_SIZE  ROUNDUP(MAX_PACKET_SIZE, PGSIZE)
+#define TX_BUFF_SIZE PGSIZE
 #define RX_BUFF_SIZE 0x4000
 
 // calculates the number of unused registers,
@@ -186,6 +186,8 @@ struct rx_desc
 volatile struct e1000_regs *e1000_reg_mem;
 
 struct tx_desc tx_desc_list[TX_DESC_COUNT];
+
+__attribute__((__aligned__(PGSIZE)))
 uint8_t tx_buffers[TX_DESC_COUNT][TX_BUFF_SIZE];
 
 // struct rx_desc rx_desc_list[RX_DESC_COUNT];
