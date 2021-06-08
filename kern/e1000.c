@@ -368,7 +368,7 @@ int receive_packet(void *addr, size_t *pkt_size) {
     struct rx_desc *tail = &rx_desc_list[cur_index];
     // sleep until there is a packet to receive, 
     // env_status will be changed by an interrupt upon recv   
-    while ((!tail->status & RX_STATUS_DD)){
+    while (!(tail->status & RX_STATUS_DD)){
         curenv->env_status = ENV_IO_WAIT;
         sched_yield();
     }
