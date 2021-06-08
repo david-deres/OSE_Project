@@ -126,3 +126,7 @@ sys_time_msec(void)
 int sys_net_try_send(void *va, size_t length) {
     return syscall(SYS_net_try_send, true, (uint32_t)va, length, 0, 0, 0);
 }
+
+int sys_net_recv(void *va, uint32_t pkt_size) {
+    return syscall(SYS_net_recv, true, (uint32_t)va, pkt_size, 0, 0, 0);
+}
