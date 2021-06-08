@@ -116,6 +116,36 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define INT_RXDMT0      (1 << 4)    // Receive Descriptor Minimum Threshold hit
 #define INT_SRPD        (1 << 16)   // Small Receive Packet Detection
 
+// Interrupt Cause Read 
+#define ICR_TXDW          0x00000001 // Transmit desc written back 
+#define ICR_TXQE          0x00000002 // Transmit Queue empty 
+#define ICR_LSC           0x00000004 // Link Status Change 
+#define ICR_RXSEQ         0x00000008 // rx sequence error 
+#define ICR_RXDMT0        0x00000010 // rx desc min. threshold (0) 
+#define ICR_RXO           0x00000040 // rx overrun 
+#define ICR_RXT0          0x00000080 // rx timer intr (ring 0) 
+#define ICR_MDAC          0x00000200 // MDIO access complete 
+#define ICR_RXCFG         0x00000400 // RX /c/ ordered set 
+#define ICR_GPI_EN0       0x00000800 // GP Int 0 
+#define ICR_GPI_EN1       0x00001000 // GP Int 1 
+#define ICR_GPI_EN2       0x00002000 // GP Int 2
+#define ICR_GPI_EN3       0x00004000 // GP Int 3 
+#define ICR_TXD_LOW       0x00008000
+#define ICR_SRPD          0x00010000
+#define ICR_ACK           0x00020000 // Receive Ack frame 
+#define ICR_MNG           0x00040000 // Manageability event 
+#define ICR_DOCK          0x00080000 // Dock/Undock 
+#define ICR_INT_ASSERTED  0x80000000 // If this bit asserted, the driver should claim the interrupt 
+#define ICR_RXD_FIFO_PAR0 0x00100000 // queue 0 Rx descriptor FIFO parity error 
+#define ICR_TXD_FIFO_PAR0 0x00200000 // queue 0 Tx descriptor FIFO parity error 
+#define ICR_HOST_ARB_PAR  0x00400000 // host arb read buffer parity error 
+#define ICR_PB_PAR        0x00800000 // packet buffer parity error 
+#define ICR_RXD_FIFO_PAR1 0x01000000 // queue 1 Rx descriptor FIFO parity error 
+#define ICR_TXD_FIFO_PAR1 0x02000000 // queue 1 Tx descriptor FIFO parity error 
+#define ICR_ALL_PARITY    0x03F00000 // all parity error bits 
+#define ICR_DSW           0x00000020 // FW changed the status of DISSW bit in the FWSM 
+#define ICR_PHYINT        0x00001000 // LAN connected device generates an interrupt 
+#define ICR_EPRST         0x00100000 // ME handware reset occu
 struct e1000_regs {
     // Device Control - RW
     ADD_REG(ctrl, E1000_CTRL, E1000_STATUS)
@@ -237,6 +267,17 @@ void setup_reception() {
 
     // setup Multicast Table Array
     e1000_reg_mem->mta = 0;
+
+    // setup Interrupt Mask Set/Read to enable interrupts
+    e1000_reg_mem->ims = 0;
+    e1000_reg_mem->ims |= ICR_RXT0;
+    e1000_reg_mem->ims |= ICR_RXO;
+    e1000_reg_mem->ims |= ICR_RXDMT0;
+    e1000_reg_mem->ims |= ICR_RXSEQ;
+    e1000_reg_mem->ims |= ICR_LSC;
+
+
+
 
     // setup reception ring buffer
     e1000_reg_mem->rdbal = (reg_t)va2pa(kern_pgdir, rx_desc_list);
