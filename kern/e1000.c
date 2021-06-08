@@ -54,7 +54,6 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define RCTL_BSIZE_shift    16         // Receive Buffer Size
 #define RCTL_BSEX           (1 << 25)  // Buffer Size Extension
 #define RCTL_SECRC          0x04000000 // Strip Ethernet CRC
-#define RCTL_SZ_4096        0x00030000 // rx buffer size 4096 //
 
 
 // RCTL Register setup values
@@ -62,7 +61,7 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 
 // Receive Address Registers
 #define RA_HIGH_MASK        0xFFFF     // Mask bits for high receive address
-#define RA_HIGH_AV          0x80000000  // Address Valid, was (1 << 31)
+#define RA_HIGH_AV          (1 << 31)  // Address Valid
 
 // Reception Status
 #define RX_STATUS_DD    1           // Descriptor Done
@@ -136,19 +135,7 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define ICR_TXD_LOW       0x00008000
 #define ICR_SRPD          0x00010000
 #define ICR_ACK           0x00020000 // Receive Ack frame 
-#define ICR_MNG           0x00040000 // Manageability event 
-#define ICR_DOCK          0x00080000 // Dock/Undock 
-#define ICR_INT_ASSERTED  0x80000000 // If this bit asserted, the driver should claim the interrupt 
-#define ICR_RXD_FIFO_PAR0 0x00100000 // queue 0 Rx descriptor FIFO parity error 
-#define ICR_TXD_FIFO_PAR0 0x00200000 // queue 0 Tx descriptor FIFO parity error 
-#define ICR_HOST_ARB_PAR  0x00400000 // host arb read buffer parity error 
-#define ICR_PB_PAR        0x00800000 // packet buffer parity error 
-#define ICR_RXD_FIFO_PAR1 0x01000000 // queue 1 Rx descriptor FIFO parity error 
-#define ICR_TXD_FIFO_PAR1 0x02000000 // queue 1 Tx descriptor FIFO parity error 
-#define ICR_ALL_PARITY    0x03F00000 // all parity error bits 
-#define ICR_DSW           0x00000020 // FW changed the status of DISSW bit in the FWSM 
-#define ICR_PHYINT        0x00001000 // LAN connected device generates an interrupt 
-#define ICR_EPRST         0x00100000 // ME handware reset occu
+
 struct e1000_regs {
     // Device Control - RW
     ADD_REG(ctrl, E1000_CTRL, E1000_STATUS)
@@ -274,12 +261,11 @@ void setup_reception() {
 
      
     // setup Interrupt Mask Set/Read to enable interrupts
-    e1000_reg_mem->ims = 0;
-    e1000_reg_mem->ims |= ICR_RXT0;
-    e1000_reg_mem->ims |= ICR_RXO;
-    e1000_reg_mem->ims |= ICR_RXDMT0;
-    e1000_reg_mem->ims |= ICR_RXSEQ;
-    e1000_reg_mem->ims |= ICR_LSC;
+    //e1000_reg_mem->ims |= ICR_RXT0;
+    //e1000_reg_mem->ims |= ICR_RXO;
+    //e1000_reg_mem->ims |= ICR_RXDMT0;
+    //e1000_reg_mem->ims |= ICR_RXSEQ;
+    //e1000_reg_mem->ims |= ICR_LSC;
     
 
     // setup reception ring buffer
@@ -310,9 +296,6 @@ void setup_reception() {
     // setup reception settings
     e1000_reg_mem->rctl |= RCTL_EN;
     e1000_reg_mem->rctl |= RCTL_BAM;
-    //setup buffer size to page size
-    e1000_reg_mem->rctl |= RCTL_BSEX;
-    e1000_reg_mem->rctl |= RCTL_SZ_4096;
     // strip ethernet CRC
     e1000_reg_mem->rctl |= RCTL_SECRC;
 }
@@ -338,6 +321,12 @@ int e1000_attach(struct pci_func *pcif) {
 }
 
 static void write_to_page(void *va, struct PageInfo *page, size_t length) {
+    page_insert(curenv->env_pgdir, page, UTEMP, PTE_W);
+    memcpy(UTEMP, va, length);
+    page_remove(curenv->env_pgdir, UTEMP);
+}
+
+static void copy_from_page(void *va, struct PageInfo *page, size_t length) {
     page_insert(curenv->env_pgdir, page, UTEMP, PTE_W);
     memcpy(UTEMP, va, length);
     page_remove(curenv->env_pgdir, UTEMP);
