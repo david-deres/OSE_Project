@@ -53,13 +53,16 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define RCTL_BAM            (1 << 15)  // Broadcast Accept Mode
 #define RCTL_BSIZE_shift    16         // Receive Buffer Size
 #define RCTL_BSEX           (1 << 25)  // Buffer Size Extension
+#define RCTL_SECRC          0x04000000 // Strip Ethernet CRC
+#define RCTL_SZ_4096        0x00030000 // rx buffer size 4096 //
+
 
 // RCTL Register setup values
 #define RCTL_BSIZE       0
 
 // Receive Address Registers
 #define RA_HIGH_MASK        0xFFFF     // Mask bits for high receive address
-#define RA_HIGH_AV          (1 << 31)  // Address Valid
+#define RA_HIGH_AV          0x80000000  // Address Valid, was (1 << 31)
 
 // Reception Status
 #define RX_STATUS_DD    1           // Descriptor Done
@@ -264,10 +267,12 @@ void setup_reception() {
     e1000_reg_mem->rah0 &= ~RA_HIGH_MASK;
     e1000_reg_mem->rah0 |= RA_HIGH_MASK & MAC_ADDR_HIGH;
     e1000_reg_mem->rah0 |= RA_HIGH_AV;
+    //panic("MAC: %x%x" , e1000_reg_mem->rah0,e1000_reg_mem->ral0 );
 
     // setup Multicast Table Array
     e1000_reg_mem->mta = 0;
 
+     
     // setup Interrupt Mask Set/Read to enable interrupts
     e1000_reg_mem->ims = 0;
     e1000_reg_mem->ims |= ICR_RXT0;
@@ -275,9 +280,7 @@ void setup_reception() {
     e1000_reg_mem->ims |= ICR_RXDMT0;
     e1000_reg_mem->ims |= ICR_RXSEQ;
     e1000_reg_mem->ims |= ICR_LSC;
-
-
-
+    
 
     // setup reception ring buffer
     e1000_reg_mem->rdbal = (reg_t)va2pa(kern_pgdir, rx_desc_list);
@@ -307,7 +310,11 @@ void setup_reception() {
     // setup reception settings
     e1000_reg_mem->rctl |= RCTL_EN;
     e1000_reg_mem->rctl |= RCTL_BAM;
-    e1000_reg_mem->rctl |= RCTL_BSIZE;
+    //setup buffer size to page size
+    e1000_reg_mem->rctl |= RCTL_BSEX;
+    e1000_reg_mem->rctl |= RCTL_SZ_4096;
+    // strip ethernet CRC
+    e1000_reg_mem->rctl |= RCTL_SECRC;
 }
 
 // LAB 6: Your driver code here
