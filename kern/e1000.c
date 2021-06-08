@@ -374,9 +374,8 @@ int receive_packet(void *addr, size_t *pkt_size) {
     }
     // there is a packet to receive
     uint16_t p_length = tail->length;
-    void *dst = page2kva(page_lookup(curenv->env_pgdir, addr, NULL));
     void *src = page2kva(rx_pages[cur_index]);
-    memcpy(dst, src, p_length);
+    memcpy(addr, src, p_length);
     page_decref(tx_pages[cur_index]);
     tail->status &= ~RX_STATUS_DD;
     if (pkt_size != NULL){
