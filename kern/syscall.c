@@ -495,16 +495,16 @@ int32_t sys_net_try_send(void *va, size_t length) {
 //     -E_INVAL if the env doesn't have permission to read the memory,
 //              or the va isn't page aligned
 int32_t sys_net_recv(void *va, size_t *pkt_size) {
-    if (user_mem_check(curenv, va, PGSIZE, PTE_P | PTE_U) != 0) {
+    if (user_mem_check(curenv, va, PGSIZE/2, PTE_P | PTE_U) != 0) {
         return -E_INVAL;
     }
+    /* 
     uintptr_t page_start = ROUNDDOWN((uintptr_t)va, PGSIZE);
     // check if address is page aligned, maybe this is unnecessary?
     if (page_start != (uintptr_t)va){
         return -E_INVAL;
-    }
-    int r = receive_packet(va, pkt_size);
-    return r;
+    }*/
+    return receive_packet(va, pkt_size);
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
