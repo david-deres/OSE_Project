@@ -364,7 +364,7 @@ int transmit_packet(void *addr, size_t length) {
 // updates pkt_size to the size received if pkt_size != NULL.
 // returns 0 on success, -E__NO_MEM if there is no packet to receive.
 int receive_packet(void *addr, size_t *pkt_size) {
-    size_t cur_index = (e1000_reg_mem->rdt+1)%RX_DESC_COUNT;
+    size_t cur_index = (e1000_reg_mem->rdt + 1)%RX_DESC_COUNT;
     struct rx_desc *tail = &rx_desc_list[cur_index];
     // sleep until there is a packet to receive, 
     // env_status will be changed by an interrupt upon recv   
@@ -390,12 +390,22 @@ int receive_packet(void *addr, size_t *pkt_size) {
 // ignores other types of traps
 // returns true if the trap was handled
 bool e1000_handler(int trapno) {
+    int i;
     if (trapno != IRQ_OFFSET + irq_line) {
         return false;
     }
 
     reg_t cause = e1000_reg_mem->icr;
-    curenv->env_status = ENV_RUNNABLE;
+    envid_t eid = curenv->env_id;
 
+    if (cause & ICR_RXT0){
+        for (i = 0; i < NENV; i++) {
+            struct Env *env = &envs[(eid + i) % NENV];
+            if (env->env_status == ENV_IO_WAIT) {
+                curenv->env_status = ENV_RUNNABLE;
+            }
+        }
+    }
+    
     return true;
 }
