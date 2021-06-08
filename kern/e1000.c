@@ -4,6 +4,7 @@
 #include <kern/e1000.h>
 #include <kern/pmap.h>
 #include <kern/picirq.h>
+#include <kern/sched.h>
 
 typedef uint32_t reg_t;
 
@@ -254,14 +255,13 @@ void setup_reception() {
     e1000_reg_mem->rah0 &= ~RA_HIGH_MASK;
     e1000_reg_mem->rah0 |= RA_HIGH_MASK & MAC_ADDR_HIGH;
     e1000_reg_mem->rah0 |= RA_HIGH_AV;
-    //panic("MAC: %x%x" , e1000_reg_mem->rah0,e1000_reg_mem->ral0 );
 
     // setup Multicast Table Array
     e1000_reg_mem->mta = 0;
 
      
     // setup Interrupt Mask Set/Read to enable interrupts
-    //e1000_reg_mem->ims |= ICR_RXT0;
+    e1000_reg_mem->ims |= ICR_RXT0;
     //e1000_reg_mem->ims |= ICR_RXO;
     //e1000_reg_mem->ims |= ICR_RXDMT0;
     //e1000_reg_mem->ims |= ICR_RXSEQ;
@@ -326,11 +326,6 @@ static void write_to_page(void *va, struct PageInfo *page, size_t length) {
     page_remove(curenv->env_pgdir, UTEMP);
 }
 
-static void copy_from_page(void *va, struct PageInfo *page, size_t length) {
-    page_insert(curenv->env_pgdir, page, UTEMP, PTE_W);
-    memcpy(UTEMP, va, length);
-    page_remove(curenv->env_pgdir, UTEMP);
-}
 
 // takes an address to the packet data, and transmits it over the network.
 // returns 0 on success, -E__NO_MEM if the transmit queue is full.
@@ -364,6 +359,33 @@ int transmit_packet(void *addr, size_t length) {
     }
 }
 
+// takes an address to copy the received data to.
+// receives over the network the next packet and copies it to the addr.
+// updates pkt_size to the size received if pkt_size != NULL.
+// returns 0 on success, -E__NO_MEM if there is no packet to receive.
+int receive_packet(void *addr, size_t *pkt_size) {
+    size_t cur_index = (e1000_reg_mem->rdt+1)%RX_DESC_COUNT;
+    struct rx_desc *tail = &rx_desc_list[cur_index];
+    // sleep until there is a packet to receive, 
+    // env_status will be changed by an interrupt upon recv   
+    while ((!tail->status & RX_STATUS_DD)){
+        curenv->env_status = ENV_IO_WAIT;
+        sched_yield();
+    }
+    // there is a packet to receive
+    uint16_t p_length = tail->length;
+    void *dst = page2kva(page_lookup(curenv->env_pgdir, addr, NULL));
+    void *src = page2kva(rx_pages[cur_index]);
+    memcpy(dst, src, p_length);
+    page_decref(tx_pages[cur_index]);
+    tail->status &= ~RX_STATUS_DD;
+    if (pkt_size != NULL){
+        *pkt_size = p_length;
+    }
+    e1000_reg_mem->rdt = cur_index;
+    return 0;
+}
+
 // handles a trap originatng from the e1000 network card
 // ignores other types of traps
 // returns true if the trap was handled
@@ -373,6 +395,7 @@ bool e1000_handler(int trapno) {
     }
 
     reg_t cause = e1000_reg_mem->icr;
+    curenv->env_status = ENV_RUNNABLE;
 
     return true;
 }
