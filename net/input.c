@@ -24,18 +24,18 @@ input(envid_t ns_envid)
 	uint8_t input_buffer[BUFFER_SIZE];
 
 	while(1){
-		size_t* len = 0;
+		size_t len = 0;
 		void* buff = &nsipcbuf.pkt.jp_data;
 		void *va = &nsipcbuf.pkt.jp_len;
 		memset(input_buffer, 0, BUFFER_SIZE);
-		if ((r = sys_net_recv(input_buffer, len))<0){
+		if ((r = sys_net_recv(input_buffer, &len))<0){
 			panic("input error: %e\n", r);
 		}
 		if (len<0){
 			panic("input error: received invalid length\n");
 		}
-		memcpy(buff, input_buffer, *len);
-		nsipcbuf.pkt.jp_len = *len;
+		memcpy(buff, input_buffer, len);
+		nsipcbuf.pkt.jp_len = len;
 		ipc_send(ns_envid, NSREQ_INPUT, va, PTE_P | PTE_U);
 		//not sure why
 		//sys_page_unmap(curenv->env_id, &nsipcbuf.pkt);
