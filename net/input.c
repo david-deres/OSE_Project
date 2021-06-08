@@ -38,7 +38,7 @@ input(envid_t ns_envid)
 		nsipcbuf.pkt.jp_len = len;
 		ipc_send(ns_envid, NSREQ_INPUT, va, PTE_P | PTE_U);
 		//not sure why
-		//sys_page_unmap(curenv->env_id, &nsipcbuf.pkt);
+		sys_page_unmap(curenv->env_id, &nsipcbuf.pkt);
 		//wait for the page to be copied, maybe do this for #CPU's 
 		sys_yield();
 	}
