@@ -42,7 +42,7 @@ sched_yield(void)
     int i;
     for (i = 0; i < NENV; i++) {
         struct Env *env = &envs[(env_id + i) % NENV];
-        if (env->env_status == ENV_RUNNABLE || env->env_status == ENV_IO_WAIT) {
+        if (env->env_status == ENV_RUNNABLE) {
             // running first available env
             env_run(env);
         }
