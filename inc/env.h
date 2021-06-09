@@ -35,8 +35,7 @@ enum {
 	ENV_DYING,
 	ENV_RUNNABLE,
 	ENV_RUNNING,
-	ENV_NOT_RUNNABLE,
-	ENV_IO_WAIT
+	ENV_NOT_RUNNABLE
 };
 
 // Special environment types
@@ -64,6 +63,7 @@ struct Env {
 
 	// Lab 4 IPC
 	bool env_ipc_recving;		// Env is blocked receiving
+	bool env_waits_for_io;
 	void *env_ipc_dstva;		// VA at which to map received page
 	uint32_t env_ipc_value;		// Data value sent to us
 	envid_t env_ipc_from;		// envid of the sender
