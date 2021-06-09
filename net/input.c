@@ -28,10 +28,18 @@ input(envid_t ns_envid)
 		void* buff = &nsipcbuf.pkt.jp_data;
 		void *va = &nsipcbuf.pkt.jp_len;
 		memset(input_buffer, 0, BUFFER_SIZE);
-		if ((r = sys_net_recv(input_buffer, &len))<0){
-			panic("input error: %e\n", r);
+		while ((r = sys_net_recv(input_buffer, &len))){
+			if (r == -E_RX_EMPTY){
+				sys_yield();
+			}
+			else {
+				break;
+			}
+		} 
+		if (r < 0){
+			panic("input error: sys_net_recv returned: %e\n", r);
 		}
-		if (len<0){
+		if (len <= 0){
 			panic("input error: received invalid length\n");
 		}
 		memcpy(buff, input_buffer, len);
