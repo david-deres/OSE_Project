@@ -368,9 +368,10 @@ int receive_packet(void *addr, size_t *pkt_size) {
     struct rx_desc *tail = &rx_desc_list[cur_index];
     // sleep until there is a packet to receive, 
     // env_status will be changed by an interrupt upon recv   
-    while (!(tail->status & RX_STATUS_DD)){
-        curenv->env_status = ENV_IO_WAIT;
-        sched_yield();
+    if (!(tail->status & RX_STATUS_DD)){
+        curenv->env_waits_for_io = true;
+        curenv->env_status = ENV_NOT_RUNNABLE;
+        return -E_RX_EMPTY;
     }
     // there is a packet to receive
     uint16_t p_length = tail->length;
@@ -400,8 +401,9 @@ bool e1000_handler(int trapno) {
     if (cause & ICR_RXT0){
         for (i = 0; i < NENV; i++) {
             struct Env *env = &envs[(eid + i) % NENV];
-            if (env->env_status == ENV_IO_WAIT) {
-                curenv->env_status = ENV_RUNNABLE;
+            if (env->env_status == ENV_NOT_RUNNABLE && env->env_waits_for_io) {
+                env->env_waits_for_io = false;
+                env->env_status = ENV_RUNNABLE;
             }
         }
     }
