@@ -79,7 +79,12 @@ send_data(struct http_request *req, int fd)
 	// LAB 6: Your code here.
 	struct Stat stat;
 	fstat(fd, &stat);
-	if (write(req->sock, fd2data, stat.st_size) != stat.st_size){
+	off_t size = stat.st_size;
+	char buff[size];
+	if ((read(fd, (void*)buff, (size_t)size)) != size){
+		return -1;
+	}
+	if (write(req->sock, buff, size) != size){
 		die("Failed to send data to client");
 	}
 	return 0;
