@@ -224,28 +224,12 @@ trap_dispatch(struct Trapframe *tf)
 	// triggered on every CPU.
 	// LAB 4/6: Your code here.
     if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
-		// a boolean array indicating whether each cpu should skip calling time_tick,
-        // when encountering a clock interrupt.
-        static bool skip_tick[NCPU] = {};
 
-        size_t i = 0;
-        if (!skip_tick[cpunum()]) {
+        // to avoid syncronizing between cpus,
+        // make the boot cpu solely responsible for the ticks
+        if (cpunum() == bootcpu->cpu_id) {
             time_tick();
-            // tell every other cpu to skip next time they encounter a tick,
-            // since that was already handled on this CPU.
-            for (i = 0; i < NCPU; i++) {
-                skip_tick[i] = true;
-            }
-
-            // if another tick is enountered on this CPU before anywhere else
-            // then thats a new tick that needs to be handled
-            skip_tick[cpunum()] = false;
-        } else {
-            // a tick was skipped, so if another one is encountered on this CPU,
-            // before anyone else, its a new tick.
-            skip_tick[cpunum()] = false;
         }
-
         lapic_eoi();
 		sched_yield();
 	}
