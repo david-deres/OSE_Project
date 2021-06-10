@@ -409,11 +409,10 @@ bool e1000_handler(int trapno) {
     }
 
     reg_t cause = e1000_reg_mem->icr;
-    envid_t eid = curenv->env_id;
 
     if (cause & ICR_RXT0){
         for (i = 0; i < NENV; i++) {
-            struct Env *env = &envs[(eid + i) % NENV];
+            struct Env *env = &envs[i % NENV];
             if (env->env_status == ENV_NOT_RUNNABLE && env->env_waits_for_io) {
                 env->env_waits_for_io = false;
                 env->env_status = ENV_RUNNABLE;
