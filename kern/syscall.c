@@ -494,9 +494,9 @@ int32_t sys_net_try_send(void *va, size_t length) {
 // Return 0 on success, < 0 on error.  Errors are:
 //     -E_INVAL if the env doesn't have permission to read the memory,
 //              or the va isn't page aligned
-int32_t sys_net_recv(void *va, size_t *pkt_size) {
-    if (user_mem_check(curenv, va, PGSIZE/2, PTE_P | PTE_U) != 0) {
-        return -E_INVAL;
+int32_t sys_net_recv(void *va) {
+    if (user_mem_check(curenv, va, PGSIZE, PTE_P | PTE_U) != 0) {
+       return -E_INVAL;
     }
     /* 
     uintptr_t page_start = ROUNDDOWN((uintptr_t)va, PGSIZE);
@@ -504,7 +504,7 @@ int32_t sys_net_recv(void *va, size_t *pkt_size) {
     if (page_start != (uintptr_t)va){
         return -E_INVAL;
     }*/
-    return receive_packet(va, pkt_size);
+    return receive_packet(va);
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -551,7 +551,7 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
         case SYS_net_try_send:
             return sys_net_try_send((void*)a1, a2);
         case SYS_net_recv:
-            return sys_net_recv((void*)a1, (size_t*)a2);    
+            return sys_net_recv((void*)a1);    
         default:
             return -E_INVAL;
 	}
