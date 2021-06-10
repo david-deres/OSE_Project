@@ -30,8 +30,6 @@ input(envid_t ns_envid)
 			panic("input error: sys_net_recv returned: %e\n", r);
 		}
 		ipc_send(ns_envid, NSREQ_INPUT, &nsipcbuf, PTE_P | PTE_U);
-		// unmap page so kernel can reuse this page if no other envs ref. it
-		//sys_page_unmap(curenv->env_id, _pkt);
 		//wait for the page to be copied, maybe do this for #CPU's 
 		sys_yield();
 	}
