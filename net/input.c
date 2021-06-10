@@ -3,10 +3,6 @@
 
 extern union Nsipc nsipcbuf;
 
-#define BUFFER_SIZE 2048
-
-
-
 
 void
 input(envid_t ns_envid)
@@ -21,14 +17,12 @@ input(envid_t ns_envid)
 	// another packet in to the same physical page.
 
 	int r, i;
-	uint8_t input_buffer[BUFFER_SIZE];
-
+	union Nsipc *_pkt = malloc(PGSIZE);
+	if (_pkt == NULL){
+			panic("input error: not enough space to alloc a page");
+	}
 	while(1){
-		size_t len = 0;
-		void* buff = &nsipcbuf.pkt.jp_data;
-		void *va = &nsipcbuf.pkt.jp_len;
-		memset(input_buffer, 0, BUFFER_SIZE);
-		while ((r = sys_net_recv(input_buffer, &len))){
+		while ((r = sys_net_recv(_pkt))){
 			if (r == -E_RX_EMPTY){
 				sys_yield();
 			}
@@ -39,15 +33,11 @@ input(envid_t ns_envid)
 		if (r < 0){
 			panic("input error: sys_net_recv returned: %e\n", r);
 		}
-		if (len <= 0){
-			panic("input error: received invalid length\n");
-		}
-		memcpy(buff, input_buffer, len);
-		nsipcbuf.pkt.jp_len = len;
-		ipc_send(ns_envid, NSREQ_INPUT, va, PTE_P | PTE_U);
-		//not sure why
-		sys_page_unmap(curenv->env_id, &nsipcbuf.pkt);
+		ipc_send(ns_envid, NSREQ_INPUT, _pkt, PTE_P | PTE_U);
+		// unmap page so kernel can reuse this page if no other envs ref. it
+		//sys_page_unmap(curenv->env_id, _pkt);
 		//wait for the page to be copied, maybe do this for #CPU's 
 		sys_yield();
 	}
+	free((void*)_pkt);
 }
