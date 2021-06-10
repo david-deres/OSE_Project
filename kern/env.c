@@ -269,7 +269,9 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	e->env_ipc_recving = 0;
 
 	// clear the IO wait flag
-	e->env_waits_for_io = false;
+	e->env_waits_for_input = false;
+
+	e->env_waits_for_output = false;
 
 	// commit the allocation
 	env_free_list = e->env_link;
