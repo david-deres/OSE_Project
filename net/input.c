@@ -17,12 +17,8 @@ input(envid_t ns_envid)
 	// another packet in to the same physical page.
 
 	int r, i;
-	union Nsipc *_pkt = malloc(PGSIZE);
-	if (_pkt == NULL){
-			panic("input error: not enough space to alloc a page");
-	}
 	while(1){
-		while ((r = sys_net_recv(_pkt))){
+		while ((r = sys_net_recv(&nsipcbuf))){
 			if (r == -E_RX_EMPTY){
 				sys_yield();
 			}
@@ -33,11 +29,10 @@ input(envid_t ns_envid)
 		if (r < 0){
 			panic("input error: sys_net_recv returned: %e\n", r);
 		}
-		ipc_send(ns_envid, NSREQ_INPUT, _pkt, PTE_P | PTE_U);
+		ipc_send(ns_envid, NSREQ_INPUT, &nsipcbuf, PTE_P | PTE_U);
 		// unmap page so kernel can reuse this page if no other envs ref. it
 		//sys_page_unmap(curenv->env_id, _pkt);
 		//wait for the page to be copied, maybe do this for #CPU's 
 		sys_yield();
 	}
-	free((void*)_pkt);
 }
