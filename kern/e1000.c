@@ -287,7 +287,8 @@ void setup_reception() {
 
     // initialize reception descriptors
     for (i=0; i < RX_DESC_COUNT; i++) {
-        rx_desc_list[i].addr = (uint64_t)page2pa(rx_pages[i]);
+        //write data after a place for length as in pkt DS
+        rx_desc_list[i].addr = (uint64_t)((page2pa(rx_pages[i]))+sizeof(int));
         rx_desc_list[i].length = 0;
         rx_desc_list[i].status = 0;
         rx_desc_list[i].errors = 0;
@@ -363,25 +364,37 @@ int transmit_packet(void *addr, size_t length) {
 // receives over the network the next packet and copies it to the addr.
 // updates pkt_size to the size received if pkt_size != NULL.
 // returns 0 on success, -E__NO_MEM if there is no packet to receive.
-int receive_packet(void *addr, size_t *pkt_size) {
-    size_t cur_index = (e1000_reg_mem->rdt + 1)%RX_DESC_COUNT;
+int receive_packet(void *addr) {
+    int r;
+    size_t cur_index = (e1000_reg_mem->rdt + 1) % RX_DESC_COUNT;
     struct rx_desc *tail = &rx_desc_list[cur_index];
-    // sleep until there is a packet to receive, 
-    // env_status will be changed by an interrupt upon recv   
     if (!(tail->status & RX_STATUS_DD)){
+        // no packets to receive
+        // env_status will be changed by an interrupt upon recv   
         curenv->env_waits_for_io = true;
         curenv->env_status = ENV_NOT_RUNNABLE;
         return -E_RX_EMPTY;
     }
     // there is a packet to receive
-    uint16_t p_length = tail->length;
-    void *src = page2kva(rx_pages[cur_index]);
-    memcpy(addr, src, p_length);
-    page_decref(tx_pages[cur_index]);
-    tail->status &= ~RX_STATUS_DD;
-    if (pkt_size != NULL){
-        *pkt_size = p_length;
+    // write length to the beggining of page
+    int *pkt_size = (int*)page2kva(rx_pages[cur_index]);
+    *pkt_size = (int)tail->length;
+    //map physical page to user space at supplied addr
+    //TODO: maybe write also?
+    if ((r = page_insert(curenv->env_pgdir, rx_pages[cur_index], addr, PTE_U | PTE_P) < 0)){
+        panic("receive_packet: page insert returned %e", r);
     }
+    // decrease ref so when user unmaps it, page is recycled
+    page_decref(rx_pages[cur_index]);
+    // allocate new page instead the one received
+    rx_pages[cur_index] = page_alloc(ALLOC_ZERO);
+    if (rx_pages[cur_index] == NULL) {
+            panic("receive_packet: unable to allocate new page for network reception");
+    }
+    // update new address
+    tail->addr = (uint64_t)((page2pa(rx_pages[cur_index]))+sizeof(int));
+    rx_pages[cur_index]->pp_ref += 1;
+    tail->status &= ~RX_STATUS_DD;
     e1000_reg_mem->rdt = cur_index;
     return 0;
 }
