@@ -35,7 +35,8 @@ enum {
 	ENV_DYING,
 	ENV_RUNNABLE,
 	ENV_RUNNING,
-	ENV_NOT_RUNNABLE
+	ENV_NOT_RUNNABLE,
+	ENV_WAITING_FOR_IO
 };
 
 // Special environment types

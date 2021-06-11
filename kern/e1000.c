@@ -357,7 +357,7 @@ int transmit_packet(void *addr, size_t length) {
         return 0;
     } else {
         curenv->env_waits_for_output = true;
-        curenv->env_status = ENV_NOT_RUNNABLE;
+        curenv->env_status = ENV_WAITING_FOR_IO;
         return -E_RX_FULL;
     }
 }
@@ -374,7 +374,7 @@ int receive_packet(void *addr) {
         // no packets to receive
         // env_status will be changed by an interrupt upon recv   
         curenv->env_waits_for_input = true;
-        curenv->env_status = ENV_NOT_RUNNABLE;
+        curenv->env_status = ENV_WAITING_FOR_IO;
         return -E_RX_EMPTY;
     }
     // there is a packet to receive
@@ -415,7 +415,7 @@ bool e1000_handler(int trapno) {
     if (cause & ICR_RXT0){
         for (i = 0; i < NENV; i++) {
             struct Env *env = &envs[i];
-            if (env->env_status == ENV_NOT_RUNNABLE && env->env_waits_for_input) {
+            if (env->env_status == ENV_WAITING_FOR_IO && env->env_waits_for_input) {
                 env->env_waits_for_input = false;
                 env->env_status = ENV_RUNNABLE;
             }
@@ -425,7 +425,7 @@ bool e1000_handler(int trapno) {
     else if (cause & INT_TXDW){
         for (i = 0; i < NENV; i++) {
             struct Env *env = &envs[i];
-            if (env->env_status == ENV_NOT_RUNNABLE && env->env_waits_for_output) {
+            if (env->env_status == ENV_WAITING_FOR_IO && env->env_waits_for_output) {
                 env->env_waits_for_output = false;
                 env->env_status = ENV_RUNNABLE;
             }
