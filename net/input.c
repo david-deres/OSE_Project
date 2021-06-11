@@ -30,7 +30,5 @@ input(envid_t ns_envid)
 			panic("input error: sys_net_recv returned: %e\n", r);
 		}
 		ipc_send(ns_envid, NSREQ_INPUT, &nsipcbuf, PTE_P | PTE_U);
-		//wait for the page to be copied, maybe do this for #CPU's 
-		sys_yield();
 	}
 }
