@@ -26,6 +26,7 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 
 #define E1000_CTRL      0x00000
 #define E1000_STATUS    0x00008
+#define E1000_EERD      0x00014
 #define E1000_ICR       0x000C0
 #define E1000_ICS       0x000C8
 #define E1000_IMS       0x000D0
@@ -130,11 +131,19 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define ICR_TXD_LOW       (1 << 15)  // Transmit Descriptor Low Threshold hit.
 #define ICR_SRPD          (1 << 16)  // Small Receive Packet Detected
 
+// EEPROM Read Register
+#define EERD_START          1
+#define EERD_DONE           (1 << 4)
+#define EERD_ADDR_SHIFT     8
+#define EERD_DATA_SHIFT     16
+
 struct e1000_regs {
     // Device Control - RW
     ADD_REG(ctrl, E1000_CTRL, E1000_STATUS)
     // Device Status - RO
-    ADD_REG(status, E1000_STATUS, E1000_ICR)
+    ADD_REG(status, E1000_STATUS, E1000_EERD)
+    // EEPROM Read - RW
+    ADD_REG(eerd, E1000_EERD, E1000_ICR)
     // Interrupt Cause Read - R/clr
     ADD_REG(icr, E1000_ICR, E1000_ICS)
     // Interrupt Cause Set - WO
