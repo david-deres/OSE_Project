@@ -136,6 +136,7 @@ const uint32_t MAC_ADDR_HIGH = 0x5634;
 #define EERD_DONE           (1 << 4)
 #define EERD_ADDR_SHIFT     8
 #define EERD_DATA_SHIFT     16
+#define EERD_DATA_MASK      0xFFFF
 
 struct e1000_regs {
     // Device Control - RW
@@ -219,6 +220,13 @@ struct PageInfo *tx_pages[TX_DESC_COUNT] = {};
 
 struct rx_desc rx_desc_list[RX_DESC_COUNT];
 struct PageInfo *rx_pages[RX_DESC_COUNT];
+
+uint16_t read_eeprom(uint8_t addr) {
+    e1000_reg_mem->eerd = EERD_START | (addr << EERD_ADDR_SHIFT);
+    uint32_t result = 0;
+    while (!((result = e1000_reg_mem->eerd) & EERD_DONE));
+    return (result >> EERD_DATA_SHIFT) & EERD_DATA_MASK;
+}
 
 void setup_transmission() {
     // setup transmission ring buffer
