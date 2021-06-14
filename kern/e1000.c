@@ -318,13 +318,6 @@ int e1000_attach(struct pci_func *pcif) {
     return true;
 }
 
-static void write_to_page(void *va, struct PageInfo *page, size_t length) {
-    page_insert(curenv->env_pgdir, page, UTEMP, PTE_W);
-    memcpy(UTEMP, va, length);
-    page_remove(curenv->env_pgdir, UTEMP);
-}
-
-
 // takes an address to the packet data, and transmits it over the network.
 // returns 0 on success, -E__NO_MEM if the transmit queue is full.
 int transmit_packet(void *addr, size_t length) {
