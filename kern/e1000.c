@@ -228,6 +228,12 @@ uint16_t read_eeprom(uint8_t addr) {
     return (result >> EERD_DATA_SHIFT) & EERD_DATA_MASK;
 }
 
+void read_mac_address(uint32_t *addr_low, uint32_t *addr_high) {
+    *addr_low = read_eeprom(0);
+    *addr_low |= read_eeprom(1) << 16;
+    *addr_high = read_eeprom(2);
+}
+
 void setup_transmission() {
     // setup transmission ring buffer
     e1000_reg_mem->tdbal = (reg_t)va2pa(kern_pgdir, tx_desc_list);
