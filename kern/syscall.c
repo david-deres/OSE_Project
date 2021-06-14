@@ -507,6 +507,19 @@ int32_t sys_net_recv(void *va) {
     return receive_packet(va);
 }
 
+// writes the mac address of the NIC to the given address,
+// Return 0 on success, < 0 on error.  Errors are:
+//     -E_INVAL if the env cant write to the given address
+int32_t sys_get_mac_addr(void *addr) {
+    if (user_mem_check(curenv, addr, 6, PTE_P | PTE_U | PTE_W)) {
+        return -E_INVAL;
+    }
+    uint8_t mac[sizeof(uint64_t)] = {};
+    read_mac_address((uint32_t*)&mac[0], (uint32_t*)&mac[4]);
+    memcpy(addr, mac, 6);
+    return 0;
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -551,7 +564,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
         case SYS_net_try_send:
             return sys_net_try_send((void*)a1, a2);
         case SYS_net_recv:
-            return sys_net_recv((void*)a1);    
+            return sys_net_recv((void*)a1);
+        case SYS_get_mac_addr:
+            return sys_get_mac_addr((void*)a1);
         default:
             return -E_INVAL;
 	}

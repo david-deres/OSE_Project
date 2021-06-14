@@ -130,3 +130,7 @@ int sys_net_try_send(void *va, size_t length) {
 int sys_net_recv(void *va) {
     return syscall(SYS_net_recv, true, (uint32_t)va, 0, 0, 0, 0);
 }
+
+int sys_get_mac_addr(void *addr) {
+    return syscall(SYS_get_mac_addr, true, (uint32_t)addr, 0, 0, 0, 0);
+}
