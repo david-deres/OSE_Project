@@ -8,10 +8,6 @@
 
 typedef uint32_t reg_t;
 
-// hard-coded mac address
-const uint32_t MAC_ADDR_LOW = 0x12005452;
-const uint32_t MAC_ADDR_HIGH = 0x5634;
-
 #define TX_DESC_COUNT 16
 #define RX_DESC_COUNT 128
 
@@ -267,9 +263,12 @@ void setup_transmission() {
 
 void setup_reception() {
     // setup receive MAC address
-    e1000_reg_mem->ral0 = MAC_ADDR_LOW;
+    uint32_t mac_low = 0;
+    uint32_t mac_high = 0;
+    read_mac_address(&mac_low, &mac_high);
+    e1000_reg_mem->ral0 = mac_low;
     e1000_reg_mem->rah0 &= ~RA_HIGH_MASK;
-    e1000_reg_mem->rah0 |= RA_HIGH_MASK & MAC_ADDR_HIGH;
+    e1000_reg_mem->rah0 |= RA_HIGH_MASK & mac_high;
     e1000_reg_mem->rah0 |= RA_HIGH_AV;
 
     // setup Multicast Table Array
