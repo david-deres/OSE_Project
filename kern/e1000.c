@@ -368,36 +368,46 @@ int transmit_packet(void *addr, size_t length) {
 // takes an address to copy the received data to.
 // receives over the network the next packet and copies it to the addr.
 // updates pkt_size to the size received if pkt_size != NULL.
-// returns 0 on success, -E__NO_MEM if there is no packet to receive.
+// returns 0 on success, -E_RX_EMPTY if there is no packet is available.
+// returns -E_NO_MEM on allocation failure
 int receive_packet(void *addr) {
     int r;
     size_t cur_index = (e1000_reg_mem->rdt + 1) % RX_DESC_COUNT;
     struct rx_desc *tail = &rx_desc_list[cur_index];
-    if (!(tail->status & RX_STATUS_DD)){
+
+    if (!(tail->status & RX_STATUS_DD)) {
         // no packets to receive
-        // env_status will be changed by an interrupt upon recv   
+        // env_status will be changed by an interrupt upon recv
         curenv->env_waits_for_input = true;
         curenv->env_status = ENV_WAITING_FOR_IO;
         return -E_RX_EMPTY;
     }
+
     // there is a packet to receive
     // write length to the beggining of page
-    int *pkt_size = (int*)page2kva(rx_pages[cur_index]);
+    int *pkt_size = (int *)page2kva(rx_pages[cur_index]);
     *pkt_size = (int)tail->length;
+
+    // allocate new page instead the one received
+    struct PageInfo *replacement_page = page_alloc(ALLOC_ZERO);
+    if (replacement_page == NULL) {
+        return -E_NO_MEM;
+    }
+
     //map physical page to user space at supplied addr
     //TODO: maybe write also?
-    if ((r = page_insert(curenv->env_pgdir, rx_pages[cur_index], addr, PTE_U | PTE_P) < 0)){
-        panic("receive_packet: page insert returned %e", r);
+    if ((r = page_insert(curenv->env_pgdir, rx_pages[cur_index], addr,
+                         PTE_U | PTE_P) < 0)) {
+        return -E_NO_MEM;
     }
+
     // decrease ref so when user unmaps it, page is recycled
     page_decref(rx_pages[cur_index]);
-    // allocate new page instead the one received
-    rx_pages[cur_index] = page_alloc(ALLOC_ZERO);
-    if (rx_pages[cur_index] == NULL) {
-            panic("receive_packet: unable to allocate new page for network reception");
-    }
+
+    rx_pages[cur_index] = replacement_page;
+
     // update new address
-    tail->addr = (uint64_t)((page2pa(rx_pages[cur_index]))+sizeof(int));
+    tail->addr = (uint64_t)((page2pa(rx_pages[cur_index])) + sizeof(int));
     rx_pages[cur_index]->pp_ref += 1;
     tail->status &= ~RX_STATUS_DD;
     e1000_reg_mem->rdt = cur_index;
