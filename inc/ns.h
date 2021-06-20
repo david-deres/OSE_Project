@@ -29,11 +29,15 @@ enum {
 	NSREQ_SEND,
 	NSREQ_SOCKET,
 
-	// The following two messages pass a page containing a struct jif_pkt
+	// The following three messages pass a page containing a struct jif_pkt
 	NSREQ_INPUT,
-	// NSREQ_OUTPUT, unlike all other messages, is sent *from* the
+	// NSREQ_OUTPUT messages, unlike all other messages, are sent *from* the
 	// network server, to the output environment
+	// also states that the packet to send should me marked as EOP
 	NSREQ_OUTPUT,
+	// this message states that the packet is part of multiple packets
+	// which means it is not EOP packet
+	NSREQ_OUTPUT_MULTI,
 
 	// The following message passes no page
 	NSREQ_TIMER,
