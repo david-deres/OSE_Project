@@ -74,32 +74,40 @@ low_level_init(struct netif *netif)
 static err_t
 low_level_output(struct netif *netif, struct pbuf *p)
 {
+    /* 
     int r = sys_page_alloc(0, (void *)PKTMAP, PTE_U|PTE_W|PTE_P);
     if (r < 0)
 	panic("jif: could not allocate page of memory");
     struct jif_pkt *pkt = (struct jif_pkt *)PKTMAP;
 
-    struct jif *jif;
-    jif = netif->state;
+    
 
     char *txbuf = pkt->jp_data;
     int txsize = 0;
-    struct pbuf *q;
-    for (q = p; q != NULL; q = q->next) {
+    */
+    struct jif *jif;
+    jif = netif->state;
+    struct pbuf *q = p;
+    while(q != NULL){
 	/* Send the data from the pbuf to the interface, one pbuf at a
 	   time. The size of the data in each pbuf is kept in the ->len
 	   variable. */
 
-	if (txsize + q->len > 2000)
-	    panic("oversized packet, fragment %d txsize %d\n", q->len, txsize);
-	memcpy(&txbuf[txsize], q->payload, q->len);
-	txsize += q->len;
+        if (q->len > 2000){
+            panic("oversized packet, txsize %d\n", q->len);
+        }
+        // if this is the last buffer in a packet or a single buffer packet
+        if (q->next == NULL){
+            ipc_send(jif->envid, NSREQ_OUTPUT, q->payload, PTE_P|PTE_W|PTE_U);
+        }
+        // if the current packet consists of additional buffers, mark this
+        // by the NSREQ_OUTPUT_MULTI message
+        else{
+            ipc_send(jif->envid, NSREQ_OUTPUT_MULTI, q->payload, PTE_P|PTE_W|PTE_U);
+        }
+        q = q->next;
     }
 
-    pkt->jp_len = txsize;
-
-    ipc_send(jif->envid, NSREQ_OUTPUT, (void *)pkt, PTE_P|PTE_W|PTE_U);
-    sys_page_unmap(0, (void *)pkt);
 
     return ERR_OK;
 }
