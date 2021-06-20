@@ -333,7 +333,7 @@ int e1000_attach(struct pci_func *pcif) {
 
 // takes an address to the packet data, and transmits it over the network.
 // returns 0 on success, -E__NO_MEM if the transmit queue is full.
-int transmit_packet(void *addr, size_t length) {
+int transmit_packet(void *addr, size_t length, bool isEOP) {
     size_t cur_index = e1000_reg_mem->tdt;
     struct tx_desc *tail = &tx_desc_list[cur_index];
     if (tail->status & TX_STATUS_DD) {
@@ -351,7 +351,9 @@ int transmit_packet(void *addr, size_t length) {
         size_t offset = addr - ROUNDDOWN(addr, PGSIZE);
 
         tail->cmd |= TX_CMD_RS;
-        tail->cmd |= TX_CMD_EOP;
+        if (isEOP){
+            tail->cmd |= TX_CMD_EOP;
+        }
         tail->cmd |= TX_CMD_IDE;
         tail->status = 0;
         tail->addr = (uint64_t)(page2pa(tx_pages[cur_index]) + offset);

@@ -485,7 +485,7 @@ int32_t sys_net_try_send(void *va, size_t length) {
         return -E_INVAL;
     }
 
-    int r = transmit_packet(va, length);
+    int r = transmit_packet(va, length, true);
     return r;
 }
 
