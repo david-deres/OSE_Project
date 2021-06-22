@@ -14,6 +14,7 @@
 #include <kern/time.h>
 #include <kern/e1000.h>
 
+
 // returns true if the given address
 // can be mapped to in user mode
 static bool is_valid_user_addr(void *va_ptr) {
@@ -436,6 +437,61 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
     return 0;
 }
 
+static int
+sys_ipc_try_sendv(envid_t to_env, void *pages, int pgvcnt, int perm){
+int r;
+    struct Env *target_env;
+    r = envid2env(to_env, &target_env, false);
+    if (r < 0) {
+        return r;
+    }
+
+    if (!target_env->env_ipc_multi_recving) {
+        return -E_IPC_NOT_RECV;
+    }
+
+
+    if (!is_valid_perm(perm)) {
+        return -E_INVAL;
+    }
+    void **pages_src = ((struct pgvec *)pages)->pgv_base;
+    void **pages_dst = ((struct pgvec *)target_env->env_ipc_dstva)->pgv_base;
+    int *lenghts_src = *((struct pgvec *)pages)->data_len;
+    int *lenghts_dst = *((struct pgvec *)target_env->env_ipc_dstva)->data_len;
+    pte_t *src_entry;
+    struct PageInfo * src_page;
+    int i;
+    //panic("VA == %08x, VA == %08x, pgvcnt = %d" , pages_src[0], ((struct pgvec *)target_env->env_ipc_dstva)->pgv_base , pgvcnt);
+    for (i = 0; i < pgvcnt; i++){
+        src_page = page_lookup(curenv->env_pgdir,
+                                            ROUNDDOWN(pages_src[i], PGSIZE), &src_entry);
+        if (src_page == NULL) {
+            return -E_INVAL;
+        }
+        if ((perm & PTE_W) != 0 && (*src_entry & PTE_W) == 0) {
+            return -E_INVAL;
+        }
+
+        r = page_insert(target_env->env_pgdir, src_page,
+                        pages_dst[i], perm);
+        if (r < 0) {
+            return r;
+        }
+        // update the address to the beginning of the data
+        pages_dst[i] = pages_src[i];
+        lenghts_dst[i] = lenghts_src[i];
+    }
+    
+
+    target_env->env_ipc_perm = perm;
+    target_env->env_ipc_multi_recving = false;
+    target_env->env_ipc_from = curenv->env_id;
+    // set the return value of recv to number of buffers on success
+    target_env->env_tf.tf_regs.reg_eax = pgvcnt;
+    target_env->env_status = ENV_RUNNABLE;
+    return 0;
+}
+
 // Block until a value is ready.  Record that you want to receive
 // using the env_ipc_recving and env_ipc_dstva fields of struct Env,
 // mark yourself not runnable, and then give up the CPU.
@@ -470,12 +526,22 @@ sys_time_msec(void)
     return time_msec();
 }
 
+static int
+sys_ipc_recv_multi(void *pages)
+{
+    curenv->env_ipc_dstva = pages;
+    curenv->env_ipc_multi_recving = true;
+    curenv->env_status = ENV_NOT_RUNNABLE;
+	sched_yield();
+	return 0;
+}
+
 // Sends the given number of bytes from a buffer over the network.
 // Return 0 on success, < 0 on error.  Errors are:
 //     -E_INVAL if the env doesn't have permission to read the memory,
 //              or the [va,va+length] doesnt fit a single page
 //     -E_NO_MEM if the transmission queue is full
-int32_t sys_net_try_send(void *va, size_t length) {
+int32_t sys_net_try_send(void *va, size_t length, bool isEOP) {
     if (user_mem_check(curenv, va, length, PTE_P | PTE_U) != 0) {
         return -E_INVAL;
     }
@@ -485,7 +551,7 @@ int32_t sys_net_try_send(void *va, size_t length) {
         return -E_INVAL;
     }
 
-    int r = transmit_packet(va, length, true);
+    int r = transmit_packet(va, length, isEOP);
     return r;
 }
 
@@ -555,14 +621,18 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
             return sys_env_set_pgfault_upcall(a1, (void*)a2);
         case SYS_ipc_recv:
             return sys_ipc_recv((void*)a1);
+        case SYS_ipc_recv_multi:
+            return sys_ipc_recv_multi((void *)a1);
         case SYS_ipc_try_send:
             return sys_ipc_try_send(a1, a2, (void*)a3, a4);
+        case SYS_ipc_try_sendv:
+            return sys_ipc_try_sendv(a1, (void *)a2, a3, a4);    
         case SYS_env_set_trapframe:
             return sys_env_set_trapframe(a1, (struct Trapframe *)a2);
         case SYS_time_msec:
             return sys_time_msec();
         case SYS_net_try_send:
-            return sys_net_try_send((void*)a1, a2);
+            return sys_net_try_send((void*)a1, a2, a3);
         case SYS_net_recv:
             return sys_net_recv((void*)a1);
         case SYS_get_mac_addr:
