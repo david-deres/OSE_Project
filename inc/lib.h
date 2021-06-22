@@ -63,9 +63,11 @@ int	sys_page_map(envid_t src_env, void *src_pg,
 		     envid_t dst_env, void *dst_pg, int perm);
 int	sys_page_unmap(envid_t env, void *pg);
 int	sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
+int sys_ipc_try_sendv(envid_t to_env, void *pages, int pgvcnt, int perm);
 int	sys_ipc_recv(void *rcv_pg);
+int sys_ipc_recv_multi(void *pages);
 unsigned int sys_time_msec(void);
-int sys_net_try_send(void *va, size_t length);
+int sys_net_try_send(void *va, size_t length, bool isEOP);
 int sys_net_recv(void *va);
 int sys_get_mac_addr(void *addr);
 
@@ -83,8 +85,15 @@ sys_exofork(void)
 }
 
 // ipc.c
+struct pgvec {
+               void **pgv_base;    /* Starting address */
+               void **data_len;     /* Number of bytes to transfer */
+			   //int *offsets; /*offset from start of page to data */  
+};
+void 	ipc_sendv(envid_t to_env, void *pages, int pgvcnt, int perm);
 void	ipc_send(envid_t to_env, uint32_t value, void *pg, int perm);
 int32_t ipc_recv(envid_t *from_env_store, void *pg, int *perm_store);
+int32_t ipc_recv_multi(void *pages, int *perm_store);
 envid_t	ipc_find_env(enum EnvType type);
 
 // fork.c
