@@ -101,7 +101,7 @@ low_level_output(struct netif *netif, struct pbuf *p)
     struct pgvec pages;
     pages.pgv_base = pkts;
     //pages.offsets = offsets;
-    pages.data_len = (void *)(&pkt_lengths);
+    pages.data_len = pkt_lengths;
     for (index = 0; index < num_of_buffers; index++){
         if (q->len > 2000){
             panic("oversized packet, txsize %d\n", q->len);
@@ -125,7 +125,7 @@ low_level_output(struct netif *netif, struct pbuf *p)
     ipc_sendv(jif->envid, &pages, num_of_buffers,  PTE_U|PTE_W|PTE_P);
 
     for (index = 0; index < num_of_buffers; index++){
-        sys_page_unmap(0, (void *)ROUNDDOWN(pkts[index], PGSIZE));
+        sys_page_unmap(0, ROUNDDOWN(pkts[index], PGSIZE));
     }
     return ERR_OK;
 }
