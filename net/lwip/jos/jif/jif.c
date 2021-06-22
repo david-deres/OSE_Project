@@ -45,6 +45,7 @@
 #include <netif/etharp.h>
 
 #define PKTMAP		0x10000000
+#define MAX_TX_BSIZE 16
 
 struct jif {
     struct eth_addr *ethaddr;
@@ -63,6 +64,16 @@ low_level_init(struct netif *netif)
     sys_get_mac_addr(netif->hwaddr);
 }
 
+static int get_num_of_buffers(struct pbuf *p){
+    struct pbuf *q = p;
+    int count = 0;
+    while (q != NULL){
+        count++;
+        q = q->next;
+    }
+    return count;
+}
+
 /*
  * low_level_output():
  *
@@ -74,41 +85,48 @@ low_level_init(struct netif *netif)
 static err_t
 low_level_output(struct netif *netif, struct pbuf *p)
 {
-    /* 
-    int r = sys_page_alloc(0, (void *)PKTMAP, PTE_U|PTE_W|PTE_P);
-    if (r < 0)
-	panic("jif: could not allocate page of memory");
-    struct jif_pkt *pkt = (struct jif_pkt *)PKTMAP;
-
-    
-
-    char *txbuf = pkt->jp_data;
-    int txsize = 0;
-    */
+    int num_of_buffers = get_num_of_buffers(p);
+    if (num_of_buffers > MAX_TX_BSIZE){
+        panic("oversized packet, number of buffers: %d\n", num_of_buffers);
+    }
+    void *pkt_addr;
     struct jif *jif;
-    jif = netif->state;
     struct pbuf *q = p;
-    while(q != NULL){
-	/* Send the data from the pbuf to the interface, one pbuf at a
-	   time. The size of the data in each pbuf is kept in the ->len
-	   variable. */
-
+    jif = netif->state;
+    int index;
+    int r;
+    void *pkts[num_of_buffers];
+    int pkt_lengths[num_of_buffers];
+    //int offsets[num_of_buffers];
+    struct pgvec pages;
+    pages.pgv_base = pkts;
+    //pages.offsets = offsets;
+    pages.data_len = (void *)(&pkt_lengths);
+    for (index = 0; index < num_of_buffers; index++){
         if (q->len > 2000){
             panic("oversized packet, txsize %d\n", q->len);
         }
-        // if this is the last buffer in a packet or a single buffer packet
-        if (q->next == NULL){
-            ipc_send(jif->envid, NSREQ_OUTPUT, q->payload, PTE_P|PTE_W|PTE_U);
+        pkt_addr = (void *)(PKTMAP + index*PGSIZE);
+        r = sys_page_alloc(0, (void *)(pkt_addr), PTE_U|PTE_W|PTE_P);
+        if (r < 0)
+        panic("jif: could not allocate page of memory");
+        //TODO: check if payload is splitted over 2 pages
+        r = sys_page_map(0, (void*)ROUNDDOWN(q->payload, PGSIZE),
+        0, pkt_addr, PTE_U|PTE_W|PTE_P);
+        if (r < 0){
+            panic("jif: low_level_output failed to map page. %e\n", r);
         }
-        // if the current packet consists of additional buffers, mark this
-        // by the NSREQ_OUTPUT_MULTI message
-        else{
-            ipc_send(jif->envid, NSREQ_OUTPUT_MULTI, q->payload, PTE_P|PTE_W|PTE_U);
-        }
+        pkts[index] = pkt_addr + (q->payload - ROUNDDOWN(q->payload, PGSIZE));
+        pkt_lengths[index] = q->len;
+        //offsets[index] = q->payload - ROUNDDOWN(q->payload, PGSIZE);
         q = q->next;
     }
+    ipc_send(jif->envid, NSREQ_OUTPUT_MULTI, NULL, 0);
+    ipc_sendv(jif->envid, &pages, num_of_buffers,  PTE_U|PTE_W|PTE_P);
 
-
+    for (index = 0; index < num_of_buffers; index++){
+        sys_page_unmap(0, (void *)ROUNDDOWN(pkts[index], PGSIZE));
+    }
     return ERR_OK;
 }
 
