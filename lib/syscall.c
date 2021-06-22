@@ -112,10 +112,21 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, int perm)
 }
 
 int
+sys_ipc_try_sendv(envid_t to_env,  void *pages, int pgvcnt, int perm)
+{
+	return syscall(SYS_ipc_try_sendv, 0, to_env, (uint32_t) pages, pgvcnt, perm, 0);
+}
+
+int
 sys_ipc_recv(void *dstva)
 {
 	return syscall(SYS_ipc_recv, 1, (uint32_t)dstva, 0, 0, 0, 0);
 }
+
+int sys_ipc_recv_multi(void *pages){
+	return syscall(SYS_ipc_recv_multi, 0, (uint32_t)pages, 0, 0, 0, 0);
+}
+
 
 unsigned int
 sys_time_msec(void)
@@ -123,8 +134,8 @@ sys_time_msec(void)
 	return (unsigned int) syscall(SYS_time_msec, 0, 0, 0, 0, 0, 0);
 }
 
-int sys_net_try_send(void *va, size_t length) {
-    return syscall(SYS_net_try_send, true, (uint32_t)va, length, 0, 0, 0);
+int sys_net_try_send(void *va, size_t length, bool isEOP) {
+    return syscall(SYS_net_try_send, true, (uint32_t)va, length, isEOP, 0, 0);
 }
 
 int sys_net_recv(void *va) {
