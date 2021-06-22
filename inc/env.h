@@ -64,6 +64,8 @@ struct Env {
 
 	// Lab 4 IPC
 	bool env_ipc_recving;		// Env is blocked receiving
+	// multi packet receive
+	bool env_ipc_multi_recving;
 	bool env_waits_for_input;
 	bool env_waits_for_output;
 	void *env_ipc_dstva;		// VA at which to map received page
