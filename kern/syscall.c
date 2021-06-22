@@ -455,16 +455,16 @@ int r;
         return -E_INVAL;
     }
     void **pages_src = ((struct pgvec *)pages)->pgv_base;
-    void **pages_dst = ((struct pgvec *)target_env->env_ipc_dstva)->pgv_base;
-    int *lenghts_src = *((struct pgvec *)pages)->data_len;
-    int *lenghts_dst = *((struct pgvec *)target_env->env_ipc_dstva)->data_len;
+    void **pages_dst = target_env->env_ipc_dstva;
+    int *lenghts_src = ((struct pgvec *)pages)->data_len;
+    //int *lenghts_dst = *((struct pgvec *)target_env->env_ipc_dstva)->data_len;
     pte_t *src_entry;
     struct PageInfo * src_page;
     int i;
-    //panic("VA == %08x, VA == %08x, pgvcnt = %d" , pages_src[0], ((struct pgvec *)target_env->env_ipc_dstva)->pgv_base , pgvcnt);
+    //panic("VA == %08x, VA == %08x, pgvcnt = %d" , pages_src[0], pages_dst[0] +  sizeof(int) , pgvcnt);
     for (i = 0; i < pgvcnt; i++){
         src_page = page_lookup(curenv->env_pgdir,
-                                            ROUNDDOWN(pages_src[i], PGSIZE), &src_entry);
+                                        ROUNDDOWN(pages_src[i], PGSIZE), &src_entry);
         if (src_page == NULL) {
             return -E_INVAL;
         }
@@ -473,13 +473,13 @@ int r;
         }
 
         r = page_insert(target_env->env_pgdir, src_page,
-                        pages_dst[i], perm);
+                        pages_dst[i] +  sizeof(int), perm);
         if (r < 0) {
             return r;
         }
         // update the address to the beginning of the data
-        pages_dst[i] = pages_src[i];
-        lenghts_dst[i] = lenghts_src[i];
+        ((int *)pages_dst)[i] = lenghts_src[i];
+        //lenghts_dst[i] = lenghts_src[i];
     }
     
 
