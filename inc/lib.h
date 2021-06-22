@@ -87,7 +87,7 @@ sys_exofork(void)
 // ipc.c
 struct pgvec {
                void **pgv_base;    /* Starting address */
-               void **data_len;     /* Number of bytes to transfer */
+               int  *data_len;     /* Number of bytes to transfer */
 			   //int *offsets; /*offset from start of page to data */  
 };
 void 	ipc_sendv(envid_t to_env, void *pages, int pgvcnt, int perm);

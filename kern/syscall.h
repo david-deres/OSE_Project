@@ -10,7 +10,7 @@ int32_t syscall(uint32_t num, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4
 
 struct pgvec {
                void **pgv_base;    /* Starting address */
-               void **data_len;     /* Number of bytes to transfer */
+               int *data_len;     /* Number of bytes to transfer */
 			   //int *offsets; /*offset from start of page to data */  
 };
 
