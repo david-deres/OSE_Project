@@ -74,6 +74,38 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
     return;
 }
 
+
+// Send 'val' and 'pgvec' which is a vector of 'pgvcnt' pages with
+// permissions 'perm' to 'to_env'.
+// This function keeps trying until it succeeds.
+// It should panic() on any error other than -E_IPC_NOT_RECV.
+void ipc_sendv(envid_t to_env, void *pages, int pgvcnt, int perm){
+    int r = -E_IPC_NOT_RECV;
+    while (1) {
+        r = sys_ipc_try_sendv(to_env, pages, pgvcnt, perm);
+        if (r == -E_IPC_NOT_RECV) {
+            sys_yield();
+        } else {
+            break;
+        }
+    }
+    if (r < 0) {
+        panic("failed at sendv: %e\n", r);
+    }
+
+    return;
+}
+
+int32_t ipc_recv_multi(void *pages, int *perm_store){
+    int count = sys_ipc_recv_multi(pages);
+    if (count < 0){
+        return count;
+    }
+    *perm_store = count < 0 ? 0 : curenv->env_ipc_perm;
+    return count;
+}
+
+
 // Find the first environment of the given type.  We'll use this to
 // find special environments.
 // Returns 0 if no such environment exists.
