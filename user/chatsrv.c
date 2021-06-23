@@ -181,7 +181,6 @@ handle_client(int sock)
     ipc_send(broadcast_env, sockid, NULL, 0);
     // wait for the client to be deleted
     ipc_recv(NULL, NULL, NULL);
-    close(sock);
     exit();
 }
 
