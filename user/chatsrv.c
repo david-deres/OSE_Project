@@ -4,8 +4,15 @@
 
 #define PORT 7
 
-#define BUFFSIZE 32
+#define BUFFSIZE 1024
 #define MAXPENDING 5    // Max connection requests
+#define MAXCLIENTS 128    // Max concurrent clients
+
+// reserve space in virtual memory in each client
+__attribute__((aligned(PGSIZE)))
+char receive_page[PGSIZE];
+
+envid_t broadcast_env = 0;
 
 static void
 die(char *m)
@@ -14,11 +21,18 @@ die(char *m)
 	exit();
 }
 
+void handle_broadcast() {
+    int clients[MAXCLIENTS];
+    while (1) {
+        //
+    }
+}
+
 void
 handle_client(int sock)
 {
 	char buffer[BUFFSIZE];
-	int received = -1;
+    int received = -1;
 
     envid_t envid = fork();
     if (envid < 0) {
@@ -27,20 +41,18 @@ handle_client(int sock)
     } else if (envid != 0) {
         return;
     }
-	// Receive message
-	if ((received = read(sock, buffer, BUFFSIZE)) < 0)
-		die("Failed to receive initial bytes from client");
 
-	// Send bytes and check for more incoming data in loop
-	while (received > 0) {
-		// Send back received data
-		if (write(sock, buffer, received) != received)
-			die("Failed to send bytes to client");
+    do {
+        // Receive message
+	    if ((received = read(sock, buffer, BUFFSIZE)) < 0)
+		    die("Failed to receive bytes from client");
 
-		// Check for more data
-		if ((received = read(sock, buffer, BUFFSIZE)) < 0)
-			die("Failed to receive additional bytes from client");
-	}
+        int r = sys_page_alloc(curenv->env_id, receive_page, PTE_P | PTE_U | PTE_W);
+        memcpy(receive_page, buffer, received);
+        ipc_send(broadcast_env, sock, receive_page, PTE_P | PTE_U);
+        sys_page_unmap(curenv->env_id, receive_page);
+
+    } while (received > 0);
 	close(sock);
     exit();
 }
@@ -79,6 +91,14 @@ umain(int argc, char **argv)
 		die("Failed to listen on server socket");
 
 	cprintf("bound\n");
+
+    broadcast_env = fork();
+    if (broadcast_env < 0) {
+        cprintf("failed to spawn broadcast env");
+        return;
+    } else if (broadcast_env == 0) {
+        handle_broadcast();
+    }
 
 	// Run until canceled
 	while (1) {
