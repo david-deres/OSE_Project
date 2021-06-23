@@ -7,6 +7,7 @@
 #define BUFFSIZE 1024
 #define MAXPENDING 5    // Max connection requests
 #define MAXCLIENTS 128    // Max concurrent clients
+#define NO_CLIENT (~0)
 
 // reserve space in virtual memory in each client
 __attribute__((aligned(PGSIZE)))
@@ -22,9 +23,48 @@ die(char *m)
 }
 
 void handle_broadcast() {
-    int clients[MAXCLIENTS];
+    int clients[MAXCLIENTS] = {};
+    memset(clients, NO_CLIENT, MAXCLIENTS);
+    int perm;
+    envid_t source_id;
+
     while (1) {
-        //
+        int sock = ipc_recv(&source_id, receive_page, &perm);
+        if (perm == 0) {
+            int i;
+
+            // check if this is an existing socket to be removed
+            for (i = 0; i < MAXCLIENTS; i++) {
+                if (clients[i] == sock) {
+                    clients[i] = NO_CLIENT;
+                    break;
+                }
+            }
+
+            if (i != MAXCLIENTS) {
+                // send aknowlegement of removal
+                ipc_send(source_id, true, NULL, 0);
+                continue;
+            }
+
+            for (i=0; i < MAXCLIENTS; i++) {
+                // check if there is spare room for a new client
+                if (clients[i] == NO_CLIENT) {
+                    clients[i] = sock;
+                    break;
+                }
+            }
+
+            if (i != MAXCLIENTS) {
+                // send aknowlegement of addition
+                ipc_send(source_id, true, NULL, 0);
+                continue;
+            } else {
+                // notify caller that no new clients can be added
+                ipc_send(source_id, false, NULL, 0);
+                continue;
+            }
+        }
     }
 }
 
@@ -110,6 +150,7 @@ umain(int argc, char **argv)
 			die("Failed to accept client connection");
 		}
 		cprintf("Client connected: %s\n", inet_ntoa(chatclient.sin_addr));
+        ipc_send(broadcast_env, clientsock, NULL, 0);
 		handle_client(clientsock);
 	}
 
