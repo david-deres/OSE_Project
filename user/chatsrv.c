@@ -128,7 +128,7 @@ void handle_broadcast() {
                 ipc_send(source_id, false, NULL, 0);
                 continue;
             }
-        } else {
+        } else if (perm == (PTE_P | PTE_U)) {
             int i;
 
             // send message to all clients
@@ -137,7 +137,9 @@ void handle_broadcast() {
                     // write(clients[i], receive_page, strlen(receive_page));
                 }
             }
-            sys_page_unmap(curenv->env_id, receive_page);
+
+            // send aknowlegement of message
+            ipc_send(source_id, true, NULL, 0);
         }
     }
 }
@@ -166,9 +168,11 @@ handle_client(int sock)
 	    if ((received = read(sock, buffer, BUFFSIZE)) < 0)
 		    die("Failed to receive bytes from client");
 
+        // broadcast message
         int r = sys_page_alloc(curenv->env_id, receive_page, PTE_P | PTE_U | PTE_W);
         strncpy(receive_page, buffer, received);
         ipc_send(broadcast_env, sockid, receive_page, PTE_P | PTE_U);
+        ipc_recv(NULL, NULL, NULL);
         sys_page_unmap(curenv->env_id, receive_page);
 
     } while (received > 0);
