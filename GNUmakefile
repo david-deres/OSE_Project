@@ -149,6 +149,7 @@ CPUS ?= 1
 
 PORT7	:= $(shell expr $(GDBPORT) + 1)
 PORT80	:= $(shell expr $(GDBPORT) + 2)
+PORT194	:= $(shell expr $(GDBPORT) + 3)
 
 QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio -gdb tcp::$(GDBPORT)
 QEMUOPTS += $(shell if $(QEMU) -nographic -help | grep -q '^-D '; then echo '-D qemu.log'; fi)
@@ -157,7 +158,7 @@ QEMUOPTS += -smp $(CPUS)
 QEMUOPTS += -hdb $(OBJDIR)/fs/fs.img
 IMAGES += $(OBJDIR)/fs/fs.img
 QEMUOPTS += -net user -net nic,model=e1000 -redir tcp:$(PORT7)::7 \
-	   -redir tcp:$(PORT80)::80 -redir udp:$(PORT7)::7 -net dump,file=qemu.pcap
+	   -redir tcp:$(PORT80)::80 -redir tcp:$(PORT194)::194 -redir udp:$(PORT7)::7 -net dump,file=qemu.pcap
 QEMUOPTS += $(QEMUEXTRA)
 
 .gdbinit: .gdbinit.tmpl
@@ -247,12 +248,19 @@ run-%: prep-% pre-qemu
 which-ports:
 	@echo "Local port $(PORT7) forwards to JOS port 7 (echo server)"
 	@echo "Local port $(PORT80) forwards to JOS port 80 (web server)"
+	@echo "Local port $(PORT194) forwards to JOS port 194 (chat server)"
+
+nc-194:
+	nc localhost $(PORT194)
 
 nc-80:
 	nc localhost $(PORT80)
 
 nc-7:
 	nc localhost $(PORT7)
+
+telnet-194:
+	telnet localhost $(PORT194)
 
 telnet-80:
 	telnet localhost $(PORT80)

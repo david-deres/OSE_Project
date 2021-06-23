@@ -2,7 +2,7 @@
 #include <lwip/sockets.h>
 #include <lwip/inet.h>
 
-#define PORT 7
+#define PORT 194
 
 #define BUFFSIZE 1024
 #define MAXPENDING 5    // Max connection requests
