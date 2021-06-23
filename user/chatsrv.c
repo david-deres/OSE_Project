@@ -30,9 +30,9 @@ fd2sockid(int fd)
 	return sfd->fd_sock.sockid;
 }
 
-// write a null terminated string to a socket
-// returns 0 on success and negative value on error
-static int write_to_socket(int sockid, char* string) {
+// allocates a fd from a socket id
+// returns the fd on success and negative value on error
+static int alloc_socket_fd(int sockid) {
     struct Fd *sfd;
 	int r;
     if ((r = fd_alloc(&sfd)) < 0
@@ -43,11 +43,19 @@ static int write_to_socket(int sockid, char* string) {
     sfd->fd_dev_id = devsock.dev_id;
 	sfd->fd_omode = O_RDWR;
 	sfd->fd_sock.sockid = sockid;
-    r = write(fd2num(sfd), string, strlen(string));
-    if (r < 0) {
-        return r;
-    }
-    return sys_page_unmap(0, sfd);
+    return fd2num(sfd);
+}
+
+// deallocates a fd for a socket
+// returns 0 on success and negative value on error
+static int free_socket_fd(int fd) {
+    struct Fd *sfd;
+	int r;
+
+	if ((r = fd_lookup(fd, &sfd)) < 0)
+		return r;
+    sys_page_unmap(0, sfd);
+    return 0;
 }
 
 static int
@@ -134,7 +142,9 @@ void handle_broadcast() {
             cprintf("client %d: %s\n", sockid, receive_page);
             for (i = 0; i < MAXCLIENTS; i++) {
                 if (clients[i] != NO_CLIENT && clients[i] != sockid) {
-                    write_to_socket(clients[i], receive_page);
+                    int sock_fd = alloc_socket_fd(clients[i]);
+                    fprintf(sock_fd, "client %d says: %s", sockid, receive_page);
+                    free_socket_fd(sock_fd);00
                 }
             }
 
