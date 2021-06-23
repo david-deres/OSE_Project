@@ -77,7 +77,7 @@ void handle_broadcast() {
 
             // check if this is an existing socket to be removed
             for (i = 0; i < MAXCLIENTS; i++) {
-                if (clients[i] != NO_CLIENT) {
+                if (clients[i] != NO_CLIENT && clients[i] != sock) {
                     write(clients[i], receive_page, strlen(receive_page));
                 }
             }
