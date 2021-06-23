@@ -40,6 +40,10 @@ static bool is_valid_perm(int perm) {
     return true;
 }
 
+static uint32_t get_offset(void *addr){
+    return (uint32_t)((uintptr_t)addr - ROUNDDOWN((uintptr_t)addr, PGSIZE));
+}
+
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
 // Destroys the environment on memory errors.
@@ -456,15 +460,21 @@ int r;
     }
     void **pages_src = ((struct pgvec *)pages)->pgv_base;
     void **pages_dst = target_env->env_ipc_dstva;
-    int *lenghts_src = ((struct pgvec *)pages)->data_len;
-    //int *lenghts_dst = *((struct pgvec *)target_env->env_ipc_dstva)->data_len;
+    uint32_t lenghts_src_offset = get_offset((void *)((struct pgvec *)pages)->data_len);
     pte_t *src_entry;
-    struct PageInfo * src_page;
+    struct PageInfo * src_page, *dst_page;
     int i;
-    //panic("VA == %08x, VA == %08x, pgvcnt = %d" , pages_src[0], pages_dst[0] +  sizeof(int) , pgvcnt);
+    
+    src_page = page_lookup(curenv->env_pgdir
+        , ROUNDDOWN(((struct pgvec *)pages)->data_len, PGSIZE), NULL);
+    if (src_page == NULL) {
+            return -E_INVAL;
+    }
+    int *lenghts_src = (void *)((uintptr_t)page2kva(src_page) + (uintptr_t)lenghts_src_offset);
+    
     for (i = 0; i < pgvcnt; i++){
         src_page = page_lookup(curenv->env_pgdir,
-                                        ROUNDDOWN(pages_src[i], PGSIZE), &src_entry);
+                                        ROUNDDOWN(pages_src[i], PGSIZE), &src_entry);                               
         if (src_page == NULL) {
             return -E_INVAL;
         }
@@ -477,9 +487,12 @@ int r;
         if (r < 0) {
             return r;
         }
-        // update the address to the beginning of the data
-        ((int *)pages_dst)[i] = lenghts_src[i];
-        //lenghts_dst[i] = lenghts_src[i];
+        dst_page = page_lookup(target_env->env_pgdir, pages_dst[i] +  sizeof(int), NULL);
+        void *curr_page = page2kva(dst_page);
+        void *data_ptr = (void *)((uint32_t)pages_dst[i] + (uint32_t)sizeof(int) + get_offset(pages_src[i]));
+        // update the pointer at pkt to the beginning of the data
+        memcpy(curr_page, &data_ptr, sizeof(char *)); 
+        target_env->pkt_len[i] = lenghts_src[i];
     }
     
 
@@ -529,6 +542,11 @@ sys_time_msec(void)
 static int
 sys_ipc_recv_multi(void *pages)
 {
+    //init the pkt_lengths
+	int i;
+	for (i = 0; i < 16; i++){
+        curenv->pkt_len[i] = 0;
+    }
     curenv->env_ipc_dstva = pages;
     curenv->env_ipc_multi_recving = true;
     curenv->env_status = ENV_NOT_RUNNABLE;
