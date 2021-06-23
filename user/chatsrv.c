@@ -96,7 +96,7 @@ handle_client(int sock)
 		    die("Failed to receive bytes from client");
 
         int r = sys_page_alloc(curenv->env_id, receive_page, PTE_P | PTE_U | PTE_W);
-        memcpy(receive_page, buffer, received);
+        strncpy(receive_page, buffer, received);
         ipc_send(broadcast_env, sock, receive_page, PTE_P | PTE_U);
         sys_page_unmap(curenv->env_id, receive_page);
 
