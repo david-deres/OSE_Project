@@ -56,10 +56,10 @@ output(envid_t ns_envid)
             int i;
             for (i=0; i < num_of_pkts - 1; i++){
                 //send_packet(buffers.pgv_base[i], lenghts[i], false);
-                send_packet(nsipcbuf[i].pkt.jp_data, nsipcbuf[i].pkt.jp_len, false);
+                send_packet(nsipcbuf[i].pkt.jp_data, curenv->pkt_len[i], false);
             }
             //send_packet(buffers.pgv_base[i],lenghts[i], true);
-            send_packet(nsipcbuf[i].pkt.jp_data, nsipcbuf[i].pkt.jp_len, true);
+            send_packet(nsipcbuf[i].pkt.jp_data, curenv->pkt_len[i], true);
             for (i=0; i < num_of_pkts; i++){
                 //sys_page_unmap(curenv->env_id, (void *)ROUNDDOWN(buffers.pgv_base[i], PGSIZE));
                 sys_page_unmap(curenv->env_id, (void *)nsipcbuf[i].pkt.jp_data);
