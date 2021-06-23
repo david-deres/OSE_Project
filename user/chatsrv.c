@@ -7,7 +7,7 @@
 #define BUFFSIZE 1024
 #define MAXPENDING 5    // Max connection requests
 #define MAXCLIENTS 128    // Max concurrent clients
-#define NO_CLIENT (~0)
+#define NO_CLIENT 0
 
 // reserve space in virtual memory in each client
 __attribute__((aligned(PGSIZE)))
@@ -77,7 +77,6 @@ die(char *m)
 
 void handle_broadcast() {
     int clients[MAXCLIENTS] = {};
-    memset(clients, NO_CLIENT, MAXCLIENTS);
     int perm;
     envid_t source_id;
 
