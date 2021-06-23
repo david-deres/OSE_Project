@@ -15,6 +15,39 @@ char receive_page[PGSIZE];
 
 envid_t broadcast_env = 0;
 
+// used to share sockets across different envs
+
+static int
+fd2sockid(int fd)
+{
+	struct Fd *sfd;
+	int r;
+
+	if ((r = fd_lookup(fd, &sfd)) < 0)
+		return r;
+	if (sfd->fd_dev_id != devsock.dev_id)
+		return -E_NOT_SUPP;
+	return sfd->fd_sock.sockid;
+}
+
+static int
+alloc_sockfd(int sockid)
+{
+	struct Fd *sfd;
+	int r;
+
+	if ((r = fd_alloc(&sfd)) < 0
+	    || (r = sys_page_alloc(0, sfd, PTE_P|PTE_W|PTE_U|PTE_SHARE)) < 0) {
+		nsipc_close(sockid);
+		return r;
+	}
+
+	sfd->fd_dev_id = devsock.dev_id;
+	sfd->fd_omode = O_RDWR;
+	sfd->fd_sock.sockid = sockid;
+	return fd2num(sfd);
+}
+
 static void
 die(char *m)
 {
@@ -100,6 +133,11 @@ handle_client(int sock)
         return;
     }
 
+    int sockid = fd2sockid(sock);
+    if (sockid < 0) {
+        exit();
+    }
+
     do {
         // Receive message
 	    if ((received = read(sock, buffer, BUFFSIZE)) < 0)
@@ -107,15 +145,16 @@ handle_client(int sock)
 
         int r = sys_page_alloc(curenv->env_id, receive_page, PTE_P | PTE_U | PTE_W);
         strncpy(receive_page, buffer, received);
-        ipc_send(broadcast_env, sock, receive_page, PTE_P | PTE_U);
+        ipc_send(broadcast_env, sockid, receive_page, PTE_P | PTE_U);
         sys_page_unmap(curenv->env_id, receive_page);
 
     } while (received > 0);
-	close(sock);
+
     // notify broadcast that this client should be deleted
-    ipc_send(broadcast_env, sock, NULL, 0);
+    ipc_send(broadcast_env, sockid, NULL, 0);
     // wait for the client to be deleted
     ipc_recv(NULL, NULL, NULL);
+    close(sock);
     exit();
 }
 
@@ -174,7 +213,12 @@ umain(int argc, char **argv)
 		cprintf("Client connected: %s\n", inet_ntoa(chatclient.sin_addr));
 
         // add new client to broadcast
-        ipc_send(broadcast_env, clientsock, NULL, 0);
+        int sockid = fd2sockid(clientsock);
+        if (sockid < 0) {
+            continue;
+        }
+
+        ipc_send(broadcast_env, sockid, NULL, 0);
         if (ipc_recv(NULL, NULL, NULL) <= 0) {
             char *error = "unable to add client";
             write(clientsock, error, strlen(error));
