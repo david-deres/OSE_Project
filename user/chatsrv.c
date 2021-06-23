@@ -108,7 +108,7 @@ void handle_broadcast() {
         } else {
             int i;
 
-            // check if this is an existing socket to be removed
+            // send message to all clients
             for (i = 0; i < MAXCLIENTS; i++) {
                 if (clients[i] != NO_CLIENT && clients[i] != sockid) {
                     // write(clients[i], receive_page, strlen(receive_page));
