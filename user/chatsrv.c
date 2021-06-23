@@ -62,8 +62,8 @@ void handle_broadcast() {
     envid_t source_id;
 
     while (1) {
-        int sock = ipc_recv(&source_id, receive_page, &perm);
-        if (sock < 0) {
+        int sockid = ipc_recv(&source_id, receive_page, &perm);
+        if (sockid < 0) {
             cprintf("error while receiving message in broadcast");
             continue;
         }
@@ -73,7 +73,7 @@ void handle_broadcast() {
 
             // check if this is an existing socket to be removed
             for (i = 0; i < MAXCLIENTS; i++) {
-                if (clients[i] == sock) {
+                if (clients[i] == sockid) {
                     clients[i] = NO_CLIENT;
                     break;
                 }
@@ -81,7 +81,7 @@ void handle_broadcast() {
 
             if (i != MAXCLIENTS) {
                 // send aknowlegement of removal
-                cprintf("removing client %d\n", sock);
+                cprintf("removing client %d\n", sockid);
                 ipc_send(source_id, true, NULL, 0);
                 continue;
             }
@@ -89,19 +89,19 @@ void handle_broadcast() {
             for (i=0; i < MAXCLIENTS; i++) {
                 // check if there is spare room for a new client
                 if (clients[i] == NO_CLIENT) {
-                    clients[i] = sock;
+                    clients[i] = sockid;
                     break;
                 }
             }
 
             if (i != MAXCLIENTS) {
                 // send aknowlegement of addition
-                cprintf("adding client %d\n", sock);
+                cprintf("adding client %d\n", sockid);
                 ipc_send(source_id, true, NULL, 0);
                 continue;
             } else {
                 // notify caller that no new clients can be added
-                cprintf("couldnt add client %d\n", sock);
+                cprintf("couldnt add client %d\n", sockid);
                 ipc_send(source_id, false, NULL, 0);
                 continue;
             }
@@ -110,7 +110,7 @@ void handle_broadcast() {
 
             // check if this is an existing socket to be removed
             for (i = 0; i < MAXCLIENTS; i++) {
-                if (clients[i] != NO_CLIENT && clients[i] != sock) {
+                if (clients[i] != NO_CLIENT && clients[i] != sockid) {
                     // write(clients[i], receive_page, strlen(receive_page));
                 }
             }
