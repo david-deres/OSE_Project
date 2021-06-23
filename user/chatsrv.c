@@ -30,6 +30,11 @@ void handle_broadcast() {
 
     while (1) {
         int sock = ipc_recv(&source_id, receive_page, &perm);
+        if (sock < 0) {
+            cprintf("error while receiving message in broadcast");
+            continue;
+        }
+
         if (perm == 0) {
             int i;
 
