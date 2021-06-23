@@ -43,6 +43,7 @@ void handle_broadcast() {
 
             if (i != MAXCLIENTS) {
                 // send aknowlegement of removal
+                cprintf("removing client %d\n", sock);
                 ipc_send(source_id, true, NULL, 0);
                 continue;
             }
@@ -57,10 +58,12 @@ void handle_broadcast() {
 
             if (i != MAXCLIENTS) {
                 // send aknowlegement of addition
+                cprintf("adding client %d\n", sock);
                 ipc_send(source_id, true, NULL, 0);
                 continue;
             } else {
                 // notify caller that no new clients can be added
+                cprintf("couldnt add client %d\n", sock);
                 ipc_send(source_id, false, NULL, 0);
                 continue;
             }
