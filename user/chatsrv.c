@@ -131,9 +131,10 @@ void handle_broadcast() {
             int i;
 
             // send message to all clients
+            cprintf("client %d: %s\n", sockid, receive_page);
             for (i = 0; i < MAXCLIENTS; i++) {
                 if (clients[i] != NO_CLIENT && clients[i] != sockid) {
-                    // write(clients[i], receive_page, strlen(receive_page));
+                    write_to_socket(clients[i], receive_page);
                 }
             }
 
