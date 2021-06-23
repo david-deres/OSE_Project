@@ -147,7 +147,7 @@ void handle_broadcast() {
 void
 handle_client(int sock)
 {
-	char buffer[BUFFSIZE];
+	char buffer[BUFFSIZE + 1] = {};
     int received = -1;
 
     envid_t envid = fork();
