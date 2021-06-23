@@ -99,9 +99,10 @@ void ipc_sendv(envid_t to_env, void *pages, int pgvcnt, int perm){
 int32_t ipc_recv_multi(void *pages, int *perm_store){
     int count = sys_ipc_recv_multi(pages);
     if (count < 0){
+        *perm_store = 0;
         return count;
     }
-    *perm_store = count < 0 ? 0 : curenv->env_ipc_perm;
+    *perm_store =  curenv->env_ipc_perm;
     return count;
 }
 
