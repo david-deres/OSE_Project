@@ -38,7 +38,7 @@ alloc_sockfd(int sockid)
 
 	if ((r = fd_alloc(&sfd)) < 0
 	    || (r = sys_page_alloc(0, sfd, PTE_P|PTE_W|PTE_U|PTE_SHARE)) < 0) {
-		nsipc_close(sockid);
+		fd_close(sfd, false);
 		return r;
 	}
 
@@ -97,6 +97,11 @@ void handle_broadcast() {
             if (i != MAXCLIENTS) {
                 // send aknowlegement of addition
                 cprintf("adding client %d\n", sockid);
+
+                int fd = alloc_sockfd(sockid);
+                cprintf("fd is %d\n", fd);
+                int i = write(fd, "welcome to the chat!\n", 21);
+
                 ipc_send(source_id, true, NULL, 0);
                 continue;
             } else {
