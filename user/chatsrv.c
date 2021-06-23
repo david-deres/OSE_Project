@@ -150,8 +150,16 @@ umain(int argc, char **argv)
 			die("Failed to accept client connection");
 		}
 		cprintf("Client connected: %s\n", inet_ntoa(chatclient.sin_addr));
+
+        // add new client to broadcast
         ipc_send(broadcast_env, clientsock, NULL, 0);
-		handle_client(clientsock);
+        if (ipc_recv(NULL, NULL, NULL) <= 0) {
+            char *error = "unable to add client";
+            write(clientsock, error, strlen(error));
+            close(clientsock);
+        } else {
+            handle_client(clientsock);
+        }
 	}
 
 	close(serversock);
