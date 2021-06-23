@@ -72,6 +72,16 @@ void handle_broadcast() {
                 ipc_send(source_id, false, NULL, 0);
                 continue;
             }
+        } else {
+            int i;
+
+            // check if this is an existing socket to be removed
+            for (i = 0; i < MAXCLIENTS; i++) {
+                if (clients[i] != NO_CLIENT) {
+                    write(clients[i], receive_page, strlen(receive_page));
+                }
+            }
+            sys_page_unmap(curenv->env_id, receive_page);
         }
     }
 }
