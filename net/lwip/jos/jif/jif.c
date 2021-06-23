@@ -97,10 +97,8 @@ low_level_output(struct netif *netif, struct pbuf *p)
     int r;
     void *pkts[num_of_buffers];
     int pkt_lengths[num_of_buffers];
-    //int offsets[num_of_buffers];
     struct pgvec pages;
     pages.pgv_base = pkts;
-    //pages.offsets = offsets;
     pages.data_len = pkt_lengths;
     for (index = 0; index < num_of_buffers; index++){
         if (q->len > 2000){
@@ -118,7 +116,6 @@ low_level_output(struct netif *netif, struct pbuf *p)
         }
         pkts[index] = pkt_addr + (q->payload - ROUNDDOWN(q->payload, PGSIZE));
         pkt_lengths[index] = q->len;
-        //offsets[index] = q->payload - ROUNDDOWN(q->payload, PGSIZE);
         q = q->next;
     }
     ipc_send(jif->envid, NSREQ_OUTPUT_MULTI, NULL, 0);
