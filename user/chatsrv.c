@@ -30,6 +30,26 @@ fd2sockid(int fd)
 	return sfd->fd_sock.sockid;
 }
 
+// write a null terminated string to a socket
+// returns 0 on success and negative value on error
+static int write_to_socket(int sockid, char* string) {
+    struct Fd *sfd;
+	int r;
+    if ((r = fd_alloc(&sfd)) < 0
+	    || (r = sys_page_alloc(0, sfd, PTE_P|PTE_W|PTE_U|PTE_SHARE)) < 0) {
+		fd_close(sfd, false);
+		return r;
+	}
+    sfd->fd_dev_id = devsock.dev_id;
+	sfd->fd_omode = O_RDWR;
+	sfd->fd_sock.sockid = sockid;
+    r = write(fd2num(sfd), string, strlen(string));
+    if (r < 0) {
+        return r;
+    }
+    return sys_page_unmap(0, sfd);
+}
+
 static int
 alloc_sockfd(int sockid)
 {
@@ -98,9 +118,7 @@ void handle_broadcast() {
                 // send aknowlegement of addition
                 cprintf("adding client %d\n", sockid);
 
-                int fd = alloc_sockfd(sockid);
-                cprintf("fd is %d\n", fd);
-                int i = write(fd, "welcome to the chat!\n", 21);
+                write_to_socket(sockid, "welcome to the chat!\n");
 
                 ipc_send(source_id, true, NULL, 0);
                 continue;
