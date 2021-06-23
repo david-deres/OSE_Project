@@ -94,6 +94,10 @@ handle_client(int sock)
 
     } while (received > 0);
 	close(sock);
+    // notify broadcast that this client should be deleted
+    ipc_send(broadcast_env, sock, NULL, 0);
+    // wait for the client to be deleted
+    ipc_recv(NULL, NULL, NULL);
     exit();
 }
 
