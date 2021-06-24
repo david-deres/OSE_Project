@@ -2,8 +2,8 @@
    In particular, what do you do if the transmit ring is full?
 
 We handle enqueuing of up to 16 packets for transmission.
-The descriptor array and packet buffers pointer array are global variables, but
-the packet buffer pointers array cell contents are initialized to NULL,
+The descriptor array and packet buffer pointer array are global variables, but
+the packet buffer pointer array contents are initialized to NULL,
 as well as the address value at the corresponding descriptor, since
 we implemented zero-copy driver, and will get the correct address
 from the output env.
@@ -93,63 +93,44 @@ Modify your E1000 driver to be "zero copy."
 
 Explanation:
 
-In order to suppport zero-copy, we had to modify packets to fit
-a whole page, so we can simply map the physical page containing 
-the packet length and data to a virtual page at user/kernel space.
-So the packet buffer pointers array is actually array of struct PageInfo *.
+In order to suppport zero-copy, we use a whole page for each packet
+so we can transfer packets by simply mapping them to different address spaces.
 The max packet size of 2096 bytes assures it will fit a single page. 
 We used the ipc mechanism which supports exactly this kind of behavior.
+Since the network stack uses the start of the page for the buffer length,
+this layout is also used by the driver so that the pages could be used as is.
 
 
-On transmission, the output env uses ipc_recv with the address of nsipcbuf,
-as the virtual page address it wants to map the received packet to.
-nsipcbuf is of type jif_pkt, in correspondence to the structure
-of the sent packet.
-To send a packet to the output env, the network server will use 
-ipc_send with the address of the page containing the pkt,
-So the kernel will map the physical page contains the
-pkt to the virtual address of output env at nsipcbuf.
-Next, we transmit this packet (as an address and length) to the e1000 driver,
-there, at function transmit_packet we do the following:
-- if the address of the corresponding index of tail at the packet buffer
-pointer array is not NULL (contained a packet which was already sent),
-we decrease the ref count of this page in order to be able to recycle it later,
-in case it was unmapped by the user env.
-- we update the pointer to point to the page mapped at output env pgdir
-for the packet at VA given as an argument,
-and increase it's ref count so it won't be recycled in case
-it's unmapped by the user,
-until it is sent by the NIC and we decrese the ref count at the above action.
-- we update the corresponding descriptor to hold the physical address of the
-the page, starting from the offset to the data.
-
-This way, we avoid copying the actual packet content by exploiting the
-advantages of virtualization.
+On transmission, the network stack sends the page containing the packet,
+to the output env via ipc_send.
+Next, we pass this page to the e1000 driver, in which we do the following:
+- we decrement the refcount of the page in the packet buffer array,
+  matching the tail of the transmission queue, if there was such a page,
+  so that it could be recycled if no other env is using it.
+- we place the new page in the array at the same position.
+- we update the physical address and length stored at said descriptor,
+  to match new page, and increment its pages refcount.
+  so it won't be prematurly recycled if its unmapped in userspace.
+- we increment the tail so that the packet can transfered to the NIC via DMA.
 
 
 On reception, at setup of the driver, we allocate in advance all
-128 pages and update the corresponding descriptor addr value to hold the
-physical address of the page starting at offset of the data, which is
-of sizeof(int) since jif_pkt contains the length attribute at the beginning.
-Upon receiving a packet,
-the NIC will write the data to the physical page pointed
-by the descriptor and the metadata to the descriptor using DMA.
-The input env calls receive_packet implicitly by syscall with the address
-of its nsipcbuf as an argument.
-at function receive_packet we do the following in case of available packet:
+128 pages and update each descriptor address value,
+to hold the physical addresses corresponding to each page.
+When a packet is received by the NIC,
+while the input env is waiting for a packet, we do the following:
 - write the packet length from the descriptor to the beginning
-of the corresponding page.
-- map the received page containing the packet to the input env pgdir at
-the given VA, received as an argument.
+  of the corresponding page.
+- map the page containing the received packet to the input env at
+  its chosen virtual address.
 - decrease the ref count of the mapped page so when user unmaps it, it
-will get recycled.
-- allocate a new page and update the packet buffer pointer and descriptor
-to the new page address.
+  will get recycled.
+- allocate a new page and update the descriptor,
+  and reception packet buffer array to point to the new page.
 
-Here also, we didn't copy the data but mapped it's physical page
-to input env's virtual address instead.
-
-
+it should be noted that both reception and transmission
+did not involve copying the packets, but instead used memory mapping,
+to acomplish said tasks.
 
 
 2) Challange: 
