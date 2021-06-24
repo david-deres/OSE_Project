@@ -48,8 +48,9 @@ what do you do if the receive queue is empty and a user environment
 requests the next incoming packet?
 
 We handle enqueuing of up to 128 packets for reception.
-The packet buffer characteristics are the same as described in transmission above,
-except here, in e1000_attach we allocate 128 new pages and update its address
+The packet buffer characteristics are the same,
+as described in transmission above, except here,
+in e1000_attach we allocate 128 new pages and update its address
 at each corresponding decriptor in order to allow the E1000
 NIC to write to them by DMA upon receiving.
 In addition, we mark all the cells in the RX desriptor as empty
@@ -130,7 +131,8 @@ On reception, at setup of the driver, we allocate in advance all
 128 pages and update the corresponding descriptor addr value to hold the
 physical address of the page starting at offset of the data, which is
 of sizeof(int) since jif_pkt contains the length attribute at the beginning.
-Upon receiving a packet, the NIC will write the data to the physical page pointed
+Upon receiving a packet,
+the NIC will write the data to the physical page pointed
 by the descriptor and the metadata to the descriptor using DMA.
 The input env calls receive_packet implicitly by syscall with the address
 of its nsipcbuf as an argument.
