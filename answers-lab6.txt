@@ -137,6 +137,32 @@ to acomplish said tasks.
 
 Write the code to load the E1000's MAC address out of the EEPROM
 
+In Order to load the MAC address, the EEPROM is read using the EERD register,
+which can read a 16 bit word out of the EEPROM at a time.
+Each word is read by writing its index into the ADDR field of the EERD,
+along which the START bit to signal the begining of the read.
+The register is polled until the DONE field is 1.
+Since a mac address is 48 bits wide, 3 consecutive reads are made,
+starting from index 0.
+
+This Mac address is then used in 3 places,
+where the address was previously hard-coded:
+- when setting up packet reception,
+  where the mac address is stored in the first Receive Address register.
+- when the testoutput program is announcing its IP
+- when the network server is being initialized
+
+To support the last two uses, which happen in userspace,
+a new syscall called sys_get_mac_addr is implemented,
+which takes takes an 6 byte array, and writes the mac address there.
+
+To demonstrate the implementation of this new functionality,
+a userspace program, called macaddr, which can be called from the shell,
+and when used, prints a message containing the MAC address, to stdout.
+
+To use the program, you first run `make-icode[-nox]` to run sh,
+then from within the shell, you run `macaddr`
+
 Explanation:
 
 3) Challange: 
