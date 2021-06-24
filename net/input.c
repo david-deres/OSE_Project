@@ -19,10 +19,9 @@ input(envid_t ns_envid)
 	int r, i;
 	while(1){
 		while ((r = sys_net_recv(&nsipcbuf))){
-			if (r == -E_RX_EMPTY){
+			if (r == -E_AGAIN){
 				sys_yield();
-			}
-			else {
+			} else {
 				break;
 			}
 		} 

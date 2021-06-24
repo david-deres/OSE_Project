@@ -25,8 +25,7 @@ enum {
 	E_FILE_EXISTS	,	// File already exists
 	E_NOT_EXEC	,	// File not a valid executable
 	E_NOT_SUPP	,	// Operation not supported
-	E_RX_EMPTY,    // receive queue is empty
-	E_TX_FULL,	// transmit queue is full
+	E_AGAIN,	// the IO should be attempted again
 	MAXERROR
 };
 

@@ -31,14 +31,14 @@ also, we mark the flag env_waits_for_output as true and then
 go back to user space.
 In user space, upon receiving a packet via ipc_recv,
 the output env will try to transmit the packet in a while loop,
-until it succeeds or gets an error which is not -E_TX_FULL,
+until it succeeds or gets an error which is not -E_AGAIN,
 
 Upon TXDW interrupt, the handler will search for an env marked as 
 ENV_WAITING_FOR_IO and also env_waits_for_output and will change the
 values back to ENV_RUNNABLE and false respectivly,
 so the scheduler will eventually
 wake the output env to transmit the packet successfuly.
-the observed return value is -E_TX_FULL,
+the observed return value is -E_AGAIN,
 which signals to the env that is should attempt to transmit the packet again,
 now that the queue isn't full.
 
@@ -60,13 +60,13 @@ by masking it at the IMS register, to receive this interrupt.
 In user space,
 the input env will try to receive a packet in a while loop,
 using the syscall for receiving packets,
-until it succeeds or gets an error which is not -E_RX_EMPTY.
-Upon return value -E_RX_EMPTY from the syscall,
+until it succeeds or gets an error which is not -E_AGAIN.
+Upon return value -E_AGAIN from the syscall,
 the input env will yield to free system resources to other env's.
 When the transmit ring is empty, we set the input env status to 
 a new status: ENV_WAITING_FOR_IO instead of ENV_RUNNING,
 also, we mark the flag env_waits_for_input as true and then
-go back to user space, returning -E_RX_EMPTY.
+go back to user space, returning -E_AGAIN.
 Upon RXT0 interrupt, the handler will search for an env marked as 
 ENV_WAITING_FOR_IO and also env_waits_for_input and will change the
 values back to ENV_RUNNABLE and false, so the scheduler will eventually

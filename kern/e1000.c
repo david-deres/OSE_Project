@@ -361,13 +361,13 @@ int transmit_packet(void *addr, size_t length) {
     } else {
         curenv->env_waits_for_output = true;
         curenv->env_status = ENV_WAITING_FOR_IO;
-        return -E_TX_FULL;
+        return -E_AGAIN;
     }
 }
 
 // takes an address to copy the received data to.
 // receives over the network the next packet and maps it to the addr.
-// returns 0 on success, -E_RX_EMPTY if the ring is empty.
+// returns 0 on success, -E_AGAIN if the ring is empty.
 // returns -E_NO_MEM on allocation failure
 int receive_packet(void *addr) {
     int r;
@@ -379,7 +379,7 @@ int receive_packet(void *addr) {
         // env_status will be changed by an interrupt upon recv
         curenv->env_waits_for_input = true;
         curenv->env_status = ENV_WAITING_FOR_IO;
-        return -E_RX_EMPTY;
+        return -E_AGAIN;
     }
 
     // there is a packet to receive

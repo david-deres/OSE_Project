@@ -5,10 +5,10 @@ extern union Nsipc nsipcbuf;
 
 // block the thread untill the packet has been sent to the driver
 static int send_packet(void *buffer, size_t length) {
-    int r = -E_TX_FULL;
-    while (r == -E_TX_FULL) {
+    int r = -E_AGAIN;
+    while (r == -E_AGAIN) {
         r = sys_net_try_send(buffer, length);
-        if (r == -E_TX_FULL){
+        if (r == -E_AGAIN){
             sys_yield();
         }
     }
