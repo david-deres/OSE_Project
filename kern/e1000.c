@@ -361,7 +361,7 @@ int transmit_packet(void *addr, size_t length) {
     } else {
         curenv->env_waits_for_output = true;
         curenv->env_status = ENV_WAITING_FOR_IO;
-        return -E_RX_FULL;
+        return -E_TX_FULL;
     }
 }
 
