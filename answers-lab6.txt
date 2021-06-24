@@ -59,3 +59,11 @@ ENV_WAITING_FOR_IO and also env_waits_for_input and will change the
 values back to ENV_RUNNABLE and false, so the scheduler will eventually
 wake the input env to receive the packet successfuly.
 
+3. What does the web page served by JOS's web server say?
+
+This file came from JOS.
+Cheesy web page!
+
+4. How long approximately did it take you to do this lab?
+
+~ 200 hours
