@@ -2,8 +2,8 @@
    In particular, what do you do if the transmit ring is full?
 
 We handle enqueuing of up to 16 packets for transmission.
-each packet is of size equal to PGSIZE in order to support 
-zero-copy implementation.
+each packet fits the size equal to PGSIZE and aligned to a single page
+in order to support zero-copy implementation.
 The exact explanation of zero-copy implementation of receive and transmit 
 will be given at the challange descriptions.
 On e1000_attach we mark all the cells in the TX desriptor as free 
@@ -12,17 +12,19 @@ We also setup the Transmit Interrupt Delay Value (TIDV) to 10 micro-seconds
 and enable the TXDW (transmit-complete interrupt) by masking it at the 
 IMS register, in order to handle the case of putting the output env to sleep 
 while the transmit ring is full, and wake it up by the TXDW interrupt,
-as will be expkained below.
+as will be explained below.
 Next, we enable interrupts from the E1000 NIC and agree on an irq_line.
 
-When the transmit ring is full, we set the output env status to 
-a new status: ENV_WAITING_FOR_IO instead of ENV_RUNNING,
+When the transmit ring is full, on the network driver, in kernel,
+we set the output env status to a new status: ENV_WAITING_FOR_IO
+instead of ENV_RUNNING,
 also, we mark the flag env_waits_for_output as true and then
 go back to user space, returning -E_TX_FULL.
-in user space, upon receiving a packet via ipc_recv,
+In user space, upon receiving a packet via ipc_recv,
 the output env will try to transmit the packet in a while loop,
 until it succeeds or gets an error which is not -E_TX_FULL,
-but will yield upon receiving this value,
+but will yield upon receiving this return value from the
+designatecd syscall for transmitting packets,
 since it's useless till the ring has a free space.
 Upon TXDW interrupt, the handler will search for an env marked as 
 ENV_WAITING_FOR_IO and also env_waits_for_output and will change the
@@ -33,4 +35,27 @@ wake the output env to transmit the packet successfuly.
 2. How did you structure your receive implementation? In particular, 
 what do you do if the receive queue is empty and a user environment 
 requests the next incoming packet?
+
+We handle enqueuing of up to 128 packets for reception.
+The packet characteristics are the same as described in transmission above.
+On e1000_attach we allocate 128 new pages in order to allow the E1000
+NIC write to them by DMA upon receiving.
+We mark all the cells in the RX desriptor as empty by turning off the DD bit. 
+We also enable the RXT0 (Receiver Timer Interrupt) 
+by masking it at the IMS register.
+
+In user space,
+the input env will try to receive a packet in a while loop,
+using the syscall for receiving packets,
+until it succeeds or gets an error which is not -E_RX_EMPTY.
+Upon return value -E_RX_EMPTY from the syscall,
+the input env will yield to free system resources to other env's.
+When the transmit ring is empty, we set the input env status to 
+a new status: ENV_WAITING_FOR_IO instead of ENV_RUNNING,
+also, we mark the flag env_waits_for_input as true and then
+go back to user space, returning -E_RX_EMPTY.
+Upon RXT0 interrupt, the handler will search for an env marked as 
+ENV_WAITING_FOR_IO and also env_waits_for_input and will change the
+values back to ENV_RUNNABLE and false, so the scheduler will eventually
+wake the input env to receive the packet successfuly.
 
