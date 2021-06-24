@@ -125,7 +125,7 @@ void handle_broadcast() {
                 // send aknowlegement of addition
                 cprintf("adding client %d\n", sockid);
 
-                write_to_socket(sockid, "welcome to the chat!\n");
+                fprintf(sockid, "welcome to the chat!\n");
 
                 ipc_send(source_id, true, NULL, 0);
                 continue;
@@ -144,7 +144,7 @@ void handle_broadcast() {
                 if (clients[i] != NO_CLIENT && clients[i] != sockid) {
                     int sock_fd = alloc_socket_fd(clients[i]);
                     fprintf(sock_fd, "client %d says: %s", sockid, receive_page);
-                    free_socket_fd(sock_fd);00
+                    free_socket_fd(sock_fd);
                 }
             }
 
