@@ -1,0 +1,32 @@
+1. How did you structure your transmit implementation? 
+   In particular, what do you do if the transmit ring is full?
+
+We handle enqueuing of up to 16 packets for transmission.
+each packet is of size equal to PGSIZE in order to support 
+zero-copy implementation.
+The exact explanation of zero-copy implementation of receive and transmit 
+will be given at the challange descriptions.
+On e1000_attach we mark all the cells in the TX desriptor as free 
+for use by our driver, by turning on the DD bit. 
+We also setup the Transmit Interrupt Delay Value (TIDV) to 10 micro-seconds
+and enable the TXDW (transmit-complete interrupt) by masking it at the 
+IMS register, in order to handle the case of putting the output env to sleep 
+while the transmit ring is full, and wake it up by the TXDW interrupt,
+as will be expkained below.
+Next, we enable interrupts from the E1000 NIC and agree on an irq_line.
+
+When the transmit ring is full, we set the output env status to 
+a new status: ENV_WAITING_FOR_IO instead of ENV_RUNNING,
+also, we mark the flag env_waits_for_output as true and then
+go back to user space, returning -E_RX_FULL.
+in user space, the output env will try to transmit the
+packet in a while loop until it succeeds, but will yield upon 
+receiving this value since it's useless till the ring has a free space.
+Upon TXDW interrupt, the handler will search for an env marked as 
+ENV_WAITING_FOR_IO and also env_waits_for_output and will change the
+values back to ENV_RUNNABLE and false, so the scheduler will eventually
+wake the output env to transmit the packet successfuly.
+
+
+
+
