@@ -340,7 +340,7 @@ int transmit_packet(void *addr, size_t length) {
 
         // replace existing page in the current slot with the new one
         if (tx_pages[cur_index] != NULL) {
-            // ensure the page gets recycpled if every env unmapped it
+            // ensure the page gets recycled if every env unmapped it
             page_decref(tx_pages[cur_index]);
         }
         tx_pages[cur_index] = page_lookup(curenv->env_pgdir, addr, NULL);
@@ -366,9 +366,8 @@ int transmit_packet(void *addr, size_t length) {
 }
 
 // takes an address to copy the received data to.
-// receives over the network the next packet and copies it to the addr.
-// updates pkt_size to the size received if pkt_size != NULL.
-// returns 0 on success, -E_RX_EMPTY if there is no packet is available.
+// receives over the network the next packet and maps it to the addr.
+// returns 0 on success, -E_RX_EMPTY if the ring is empty.
 // returns -E_NO_MEM on allocation failure
 int receive_packet(void *addr) {
     int r;
@@ -388,21 +387,20 @@ int receive_packet(void *addr) {
     int *pkt_size = (int *)page2kva(rx_pages[cur_index]);
     *pkt_size = (int)tail->length;
 
-    // allocate new page instead the one received
-    struct PageInfo *replacement_page = page_alloc(ALLOC_ZERO);
-    if (replacement_page == NULL) {
-        return -E_NO_MEM;
-    }
-
     //map physical page to user space at supplied addr
-    //TODO: maybe write also?
     if ((r = page_insert(curenv->env_pgdir, rx_pages[cur_index], addr,
-                         PTE_U | PTE_P) < 0)) {
+                         PTE_U | PTE_P | PTE_W) < 0)) {
         return -E_NO_MEM;
     }
 
     // decrease ref so when user unmaps it, page is recycled
     page_decref(rx_pages[cur_index]);
+
+     // allocate new page instead the one received
+    struct PageInfo *replacement_page = page_alloc(ALLOC_ZERO);
+    if (replacement_page == NULL) {
+        return -E_NO_MEM;
+    }
 
     rx_pages[cur_index] = replacement_page;
 
