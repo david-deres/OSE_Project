@@ -22,19 +22,25 @@ Next, we enable interrupts from the E1000 NIC and agree on an irq_line.
 
 When the transmit ring is full, on the network driver, in kernel,
 we set the output env status to a new status: ENV_WAITING_FOR_IO
-instead of ENV_RUNNING,
+instead of ENV_RUNNING, which suspends the execution of the enviorment,
+while also ensuring that the operating system doesn't terminate
+when all existing envs are in that state,
+since they are still expected to finish their operation.
+
 also, we mark the flag env_waits_for_output as true and then
-go back to user space, returning -E_TX_FULL.
+go back to user space.
 In user space, upon receiving a packet via ipc_recv,
 the output env will try to transmit the packet in a while loop,
 until it succeeds or gets an error which is not -E_TX_FULL,
-but will yield upon receiving this return value from the
-designatecd syscall for transmitting packets,
-since it's useless till the ring has a free space.
+
 Upon TXDW interrupt, the handler will search for an env marked as 
 ENV_WAITING_FOR_IO and also env_waits_for_output and will change the
-values back to ENV_RUNNABLE and false, so the scheduler will eventually
+values back to ENV_RUNNABLE and false respectivly,
+so the scheduler will eventually
 wake the output env to transmit the packet successfuly.
+the observed return value is -E_TX_FULL,
+which signals to the env that is should attempt to transmit the packet again,
+now that the queue isn't full.
 
 
 2. How did you structure your receive implementation? In particular, 
