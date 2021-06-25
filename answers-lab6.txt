@@ -172,61 +172,78 @@ Add a simple chat server to JOS
 Explanation:
 
 The server runs over TCP\IP via port 194 and supports up to 128 clients
-simultaneously. It simply broadcasts every message received from a client,
-using broadcast_env, to every other client connected to it, and also
-displays the messages and other actions regarding its operation on the
-servers screen.
+simultaneously. Messages are transmitted from each client,
+to every other client connected to the server,
+using a dedicated broadcast env, which also keeps track of connected clients.
+Interactions with the server, such as clients connecting and disconnecting,
+are recorded as output on the servers screen.
 
 First, the server gets a valid struct FdSock socket fd to communicate
-over TCP/IP protocol and binds the socket id to its IP addr. and port no. 194.
-then, it starts to listen to new connection requests over this socket fd.
+over TCP/IP protocol and binds the socket id to its IP address at port 194.
+This is the socket it will later use to listen to new connection requests.
 
 Next, the server spawns the broadcast_env.
 The broadcast_env is in charge of managing the clients "subscribed"
 to the chat, by holding a clients array of size 128, in which every cell
 holds the corresponding sockid of the client connected to the server.
+
+The sockid is used since it uniquely identifies a socket,
+independently of the currently running env, and can thus be used,
+to share sockets across different envs.
+Since every connection to a client is bound to a seperate socket,
+this id is also unique for each client for as long as it is connected.
+
+
 How it works:
-The server accepts any new connection via its socket in a loop,
-this leads to getting a new socket fd for the client - clientsock.
-we used the lwIP sockid in order to be able
-to share sockets accross different env's since it is global.
-so the server uses ipc to send broadcast_env the
-sockid of the new client. the broadcast_env iterates over the clients
-array to search for an empty cell for this client. if the array is full,
-there are already 128 clients connected so the server will receive a 
-'false' message in return, pointing the situation, and will print an error 
-and close the client socket.  
-If there is a free space for the client, the sockid will be added to the array
-and the server will receive a 'true' message. In addition, the client will
-receive a welcome message - detailed explanation of message 
+
+The server accepts new connections via its socket in a loop,
+which creates a new socket fd for each client that connects to the server.
+The server uses IPC to send broadcast_env the sockid of the new client.
+Upon receiving the IPC, the broadcast_env searches for an empty cell,
+in the client array for this client.
+
+If the array is full, will receive a  'false' message in return,
+whcih signals to the server that the client couldn't be added,
+and the server in turn will print an error and close the client socket.
+Otherwise the sockid will be added to the array
+and the server will receive a 'true' message.
+
+Once the client has been succesfully added,
+the client will receive a welcome message - detailed explanation of message
 sending mechanism below.
-For the last step in accepting new client, the server will spawn a child for
-handling receiving messages from this client, 
-which will run handle_client with its clientsock fd as an argument.
-The open fd's are inherited so it can read from the client's fd.
-For removing an existing client, broadcast_env will receive an ipc message
-with the sockid, simillar to the one declaring a new client.
-If the sockid is found during the iteration over the clients array, it
-will be removed and acknolage message will be sent back.
+
+For the last step in accepting new client, the server will spawn a new env,
+for handling receiving messages from this client, using its socket fd.
+The fds are inherited by child envs so it can read from the client's fd.
+
+When a client diconnects from the server,
+the client handling env sends an IPC message to broadcast_env,
+with the sockid, simillarly to the one declaring a new client.
+In response, the broadcast_env searches for the sockid in the clients array,
+and removes it from the array.
+The broadcast env then send an IPC message back to the client,
+acknowledging the previous message and indicating that the exchage is complete.
+That way the client env know it can safely close the socket,
+and allow it to be reused by future clients.
+
 
 broadcast_env's second responsibility is to broadcast the messages sent by 
 the clients to all other connected clients.
 This is done by the following routine:
-In handle_client, in a loop,
-we read from the corresponding clientsock fd to a buffer of size 1024 bytes.
-Then page is being allocated, the buffer is copied to it, and page is sent to
-broadcast_env, along with the client's sockid via ipc.
-in broadcast_env, upon receiving this page,
-which gets mapped by the ipc mechanism to the broadcast_env receive_page addr,
-we iterate over the clients array, 
-and for each client other than sockid, we construct a Fd
-with the corresponding global sockid saved in the array cell,
-write to it the page content, using fprintf, and then free the constructed Fd.
-Finally, the broadcast_env sends ack message to the sender so the sender
-can unmap the page.
 
-When client closes the connection, an ipc message will be sent to
-broadcast_env so it can be removed from the clients array as explained above.
+In env client, in a loop, we allocate a page, read from the socket to it,
+and as long as EOF isn't reached due to the client closing the socket,
+we send the page to broadcast_env, along with the client's sockid via IPC.
+A page is allocated each time to prevent data races,
+between the client env writing to the page and the broadcast page reading it,
+
+In broadcast_env, upon receiving this page, we iterate over the clients array,
+and for each client other then the one that sent the message,
+we construct a Fd with the corresponding sockid saved in the array cell,
+write the page content to it, prefixed with text,
+indicating which client sent the given message.
+Finally, the broadcast_env sends acknowledgment message as before,
+to ensure the clients are syncronized with the broadcast_env.
 
 
 To use the program, first run `make run-chatsrv` to start the server,
