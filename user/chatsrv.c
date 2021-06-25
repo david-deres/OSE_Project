@@ -123,14 +123,14 @@ void handle_broadcast() {
             }
 
             if (i != MAXCLIENTS) {
-                // send aknowlegement of addition
-                cprintf("adding client %d\n", sockid);
-
+                // write welcome message to client
                 sock_fd = alloc_socket_fd(sockid);
                 fprintf(sock_fd,
                  "welcome to the chat! you are client no. %d\n", sockid);
                 free_socket_fd(sock_fd);
 
+                // send aknowlegement of addition
+                cprintf("adding client %d\n", sockid);
                 ipc_send(source_id, true, NULL, 0);
                 continue;
             } else {
