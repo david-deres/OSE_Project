@@ -9,7 +9,7 @@ we implemented zero-copy driver, and will get the correct address
 from the output env.
 Each packet buffer fits the size equal to PGSIZE and aligned to a single page
 in order to support zero-copy implementation.
-The exact explanation of zero-copy implementation of receive and transmit 
+The exact explanation of zero-copy implementation of receive and transmit
 will be given at the challange descriptions.
 On e1000_attach we mark all the cells in the TX desriptor as free 
 for use by our driver, by turning on the DD bit. 
@@ -227,7 +227,7 @@ That way the client env know it can safely close the socket,
 and allow it to be reused by future clients.
 
 
-broadcast_env's second responsibility is to broadcast the messages sent by 
+broadcast_env's second responsibility is to broadcast the messages sent by
 the clients to all other connected clients.
 This is done by the following routine:
 
