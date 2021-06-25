@@ -200,6 +200,7 @@ handle_client(int sock)
     ipc_send(broadcast_env, sockid, NULL, 0);
     // wait for the client to be deleted
     ipc_recv(NULL, NULL, NULL);
+    close(sock);
     exit();
 }
 
@@ -267,10 +268,10 @@ umain(int argc, char **argv)
         if (ipc_recv(NULL, NULL, NULL) <= 0) {
             char *error = "unable to add client";
             write(clientsock, error, strlen(error));
-            close(clientsock);
         } else {
             handle_client(clientsock);
         }
+        close(clientsock);
 	}
 
 	close(serversock);
