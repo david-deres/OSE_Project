@@ -161,7 +161,6 @@ void handle_broadcast() {
 void
 handle_client(int sock)
 {
-	char buffer[BUFFSIZE + 1] = {};
     int received = -1;
 
     envid_t envid = fork();
@@ -178,8 +177,12 @@ handle_client(int sock)
     }
 
     while (true) {
+        int r = sys_page_alloc(curenv->env_id, receive_page, PTE_P | PTE_U | PTE_W);
+        if (r< 0) {
+            die("Failed to allocate page for client");
+        }
         // Receive message
-	    if ((received = read(sock, buffer, BUFFSIZE)) < 0)
+	    if ((received = read(sock, receive_page, BUFFSIZE)) < 0)
 		    die("Failed to receive bytes from client");
 
         if (received == 0) {
@@ -188,8 +191,6 @@ handle_client(int sock)
         }
 
         // broadcast message
-        int r = sys_page_alloc(curenv->env_id, receive_page, PTE_P | PTE_U | PTE_W);
-        strncpy(receive_page, buffer, received);
         ipc_send(broadcast_env, sockid, receive_page, PTE_P | PTE_U);
         ipc_recv(NULL, NULL, NULL);
         sys_page_unmap(curenv->env_id, receive_page);
