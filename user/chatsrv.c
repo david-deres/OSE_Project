@@ -177,10 +177,15 @@ handle_client(int sock)
         exit();
     }
 
-    do {
+    while (true) {
         // Receive message
 	    if ((received = read(sock, buffer, BUFFSIZE)) < 0)
 		    die("Failed to receive bytes from client");
+
+        if (received == 0) {
+            // reached EOF, the client exited the server
+            break;
+        }
 
         // broadcast message
         int r = sys_page_alloc(curenv->env_id, receive_page, PTE_P | PTE_U | PTE_W);
@@ -189,7 +194,7 @@ handle_client(int sock)
         ipc_recv(NULL, NULL, NULL);
         sys_page_unmap(curenv->env_id, receive_page);
 
-    } while (received > 0);
+    };
 
     // notify broadcast that this client should be deleted
     ipc_send(broadcast_env, sockid, NULL, 0);
