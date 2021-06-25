@@ -137,6 +137,8 @@ to acomplish said tasks.
 
 Write the code to load the E1000's MAC address out of the EEPROM
 
+Explanation:
+
 In Order to load the MAC address, the EEPROM is read using the EERD register,
 which can read a 16 bit word out of the EEPROM at a time.
 Each word is read by writing its index into the ADDR field of the EERD,
@@ -154,7 +156,7 @@ where the address was previously hard-coded:
 
 To support the last two uses, which happen in userspace,
 a new syscall called sys_get_mac_addr is implemented,
-which takes takes an 6 byte array, and writes the mac address there.
+which takes a 6 byte array, and writes the mac address to it.
 
 To demonstrate the implementation of this new functionality,
 a userspace program, called macaddr, which can be called from the shell,
@@ -162,8 +164,6 @@ and when used, prints a message containing the MAC address, to stdout.
 
 To use the program, you first run `make-icode[-nox]` to run sh,
 then from within the shell, you run `macaddr`
-
-Explanation:
 
 3) Challange: 
 
