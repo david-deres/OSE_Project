@@ -229,28 +229,6 @@ When client closes the connection, an ipc message will be sent to
 broadcast_env so it can be removed from the clients array as explained above.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 To use the program, first run `make run-chatsrv` to start the server,
 then, for every new client, open a new terminal and run 'make nc-194'. 
 or you can simply run ./server_script.sh from the root folder, which will
