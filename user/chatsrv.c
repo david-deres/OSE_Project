@@ -86,6 +86,7 @@ die(char *m)
 void handle_broadcast() {
     int clients[MAXCLIENTS] = {};
     int perm;
+    int sock_fd;
     envid_t source_id;
 
     while (1) {
@@ -125,7 +126,10 @@ void handle_broadcast() {
                 // send aknowlegement of addition
                 cprintf("adding client %d\n", sockid);
 
-                fprintf(sockid, "welcome to the chat!\n");
+                sock_fd = alloc_socket_fd(sockid);
+                fprintf(sock_fd,
+                 "welcome to the chat! you are client no. %d\n", sockid);
+                free_socket_fd(sock_fd);
 
                 ipc_send(source_id, true, NULL, 0);
                 continue;
@@ -142,7 +146,7 @@ void handle_broadcast() {
             cprintf("client %d: %s\n", sockid, receive_page);
             for (i = 0; i < MAXCLIENTS; i++) {
                 if (clients[i] != NO_CLIENT && clients[i] != sockid) {
-                    int sock_fd = alloc_socket_fd(clients[i]);
+                    sock_fd = alloc_socket_fd(clients[i]);
                     fprintf(sock_fd, "client %d says: %s", sockid, receive_page);
                     free_socket_fd(sock_fd);
                 }
